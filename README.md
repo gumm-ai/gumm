@@ -8,6 +8,10 @@
 
 Website: [gumm.app](https://gumm.app)
 
+> **⚠️ Heavy Development** — Gumm is under active, heavy development. Expect bugs, breaking changes, and hundreds of missing features. Contributions and feedback are very welcome!
+>
+> Join the community on Discord: [discord.gg/S2FEDCzpxp](https://discord.gg/S2FEDCzpxp)
+
 Gumm runs as a lightweight Docker container (Bun + Nuxt 4 + SQLite) with a hot-swappable module system, long-term memory, and optional Tailscale mesh networking. Control it from the web dashboard or the CLI.
 
 ---

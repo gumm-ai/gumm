@@ -92,7 +92,12 @@ export default defineEventHandler(async () => {
           modality?: string;
         };
       }>;
-    }>('https://openrouter.ai/api/v1/models');
+    }>('https://openrouter.ai/api/v1/models', {
+      headers: {
+        'HTTP-Referer': 'https://gumm.dev',
+        'X-Title': 'Gumm',
+      },
+    });
 
     if (!res?.data?.length) {
       // Fallback to Mistral only if OpenRouter fails

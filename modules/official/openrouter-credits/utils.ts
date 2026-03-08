@@ -2,7 +2,11 @@ import { OPENROUTER_API } from './constants';
 
 export async function fetchBalance(apiKey: string) {
   const res = await fetch(`${OPENROUTER_API}/credits`, {
-    headers: { Authorization: `Bearer ${apiKey}` },
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'HTTP-Referer': 'https://gumm.dev',
+      'X-Title': 'Gumm',
+    },
   });
   if (!res.ok) return null;
   const json = (await res.json()) as {
@@ -13,7 +17,11 @@ export async function fetchBalance(apiKey: string) {
 
 export async function fetchActivity(apiKey: string) {
   const res = await fetch(`${OPENROUTER_API}/activity?limit=200`, {
-    headers: { Authorization: `Bearer ${apiKey}` },
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'HTTP-Referer': 'https://gumm.dev',
+      'X-Title': 'Gumm',
+    },
   });
   if (!res.ok) return [];
   const json = (await res.json()) as {
