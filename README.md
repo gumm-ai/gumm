@@ -27,6 +27,12 @@ Gumm is free and open-source. If it's useful to you, consider sponsoring its dev
 
 ## Quick Start (VPS / Server)
 
+### Server Requirements
+
+- **RAM:** 4 GB minimum
+- **Disk:** 10 GB minimum
+- **Recommended provider (EU):** [Skrime.eu](https://skrime.eu/a/gumm)
+
 One command to install everything on a fresh server (Docker, Tailscale, Go, the CLI, and Gumm itself):
 
 ```bash
