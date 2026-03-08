@@ -128,7 +128,7 @@ const autoDetectedTypes = [
 
 <template>
   <section
-    class="rounded-xl border border-gumm-border bg-gumm-surface p-4 max-w-2xl"
+    class="rounded-xl border border-gumm-border bg-gumm-surface p-5 flex flex-col h-full"
   >
     <div class="flex items-center gap-2 mb-1">
       <Icon name="lucide:shield-alert" class="h-4 w-4 text-gumm-accent" />

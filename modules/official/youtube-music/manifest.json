@@ -29,5 +29,14 @@
     "What's trending in music on YouTube?",
     "Find songs similar to what I listen to",
     "Add this video to my favorites playlist"
-  ]
+  ],
+  "commands": [
+    {
+      "name": "ytmusic",
+      "shortDescription": "Browse your YouTube Music library and trending",
+      "description": "If text is provided after /ytmusic, treat it as a search query and use ytmusic_search. Otherwise, call ytmusic_playlists to list the user's playlists and ytmusic_liked_music to show recently liked songs. Also fetch ytmusic_trending for what's hot right now. Present results in a music-friendly format."
+    }
+  ],
+  "icon": "simple-icons:youtube",
+  "color": "text-red-400 bg-red-500/10 border-red-500/20"
 }

@@ -1,0 +1,35 @@
+{
+  "id": "web-browse",
+  "name": "Web Browse",
+  "version": "1.0.0",
+  "description": "Search the web and read any web page. Lets Gumm look up current information, read articles, and research any topic online. Uses DuckDuckGo (no API key required).",
+  "entrypoint": "index.ts",
+  "capabilities": ["fetch"],
+  "defaultEnabled": false,
+  "author": {
+    "name": "Gumm Team",
+    "url": "https://github.com/gumm-isles"
+  },
+  "repository": "gumm-isles/web-browse",
+  "examples": [
+    "Search for the latest AI news",
+    "What is the current price of Bitcoin?",
+    "Read this article: https://example.com",
+    "Research TypeScript best practices",
+    "What happened in the news today?"
+  ],
+  "commands": [
+    {
+      "name": "search",
+      "shortDescription": "Search the web for any topic",
+      "description": "Use the text provided after /search as the search query. Use the web_search tool to find relevant results, then summarize the top 4-5 results with titles, snippets, and source URLs. If the query includes a URL (starts with http/https), use web_read to read that page and summarize its content instead."
+    },
+    {
+      "name": "read",
+      "shortDescription": "Read and summarize a web page",
+      "description": "Use the URL provided after /read as the target page. Use the web_read tool to fetch and parse the page content. Provide a clear and concise summary of the main content: key points, important data, and any notable facts. If no URL is provided, ask the user for one."
+    }
+  ],
+  "icon": "lucide:globe",
+  "color": "text-cyan-400 bg-cyan-500/10 border-cyan-500/20"
+}

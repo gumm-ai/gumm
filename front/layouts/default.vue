@@ -3,10 +3,11 @@ const route = useRoute();
 
 const navItems = [
   { label: 'Chat', to: '/', icon: 'lucide:message-square' },
-  { label: 'Isles', to: '/isles', icon: 'lucide:palmtree' },
+  { label: 'Modules', to: '/modules', icon: 'lucide:palmtree' },
   { label: 'APIs', to: '/apis', icon: 'lucide:plug' },
   { label: 'Commands', to: '/commands', icon: 'lucide:terminal' },
   { label: 'Tasks', to: '/tasks', icon: 'lucide:clock' },
+  { label: 'Jobs', to: '/jobs', icon: 'lucide:git-branch-plus' },
   { label: 'Devices', to: '/devices', icon: 'lucide:monitor-smartphone' },
   { label: 'Brain', to: '/brain', icon: 'lucide:brain' },
   { label: 'History', to: '/history', icon: 'lucide:history' },
@@ -26,6 +27,32 @@ const hasModuleError = computed(
       (m) => m.runtimeStatus === 'error' || m.status === 'error',
     ) ?? false,
 );
+
+// Fetch running background jobs count for sidebar badge
+const { data: sidebarJobs, refresh: refreshSidebarJobs } = useFetch<{
+  jobs: { status: string }[];
+}>('/api/jobs', { lazy: true, server: false });
+
+const runningJobsCount = computed(
+  () =>
+    sidebarJobs.value?.jobs.filter(
+      (j) => j.status === 'running' || j.status === 'pending',
+    ).length ?? 0,
+);
+
+// Subscribe to job events for real-time sidebar badge updates
+onMounted(() => {
+  const es = new EventSource('/api/jobs/stream');
+  es.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.type?.startsWith('job.')) refreshSidebarJobs();
+    } catch {
+      /* ignore */
+    }
+  };
+  onUnmounted(() => es.close());
+});
 
 // Fetch updates status
 interface UpdatesResponse {
@@ -121,10 +148,18 @@ async function logout() {
           }}</span>
           <!-- Error badge on Modules nav item -->
           <span
-            v-if="item.to === '/isles' && hasModuleError"
+            v-if="item.to === '/modules' && hasModuleError"
             class="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500 animate-pulse-dot"
             title="A module has an error"
           />
+          <!-- Running jobs badge on Jobs nav item -->
+          <span
+            v-if="item.to === '/jobs' && runningJobsCount > 0"
+            class="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-indigo-500 px-1 text-[10px] font-bold text-white"
+            :title="`${runningJobsCount} job(s) running`"
+          >
+            {{ runningJobsCount }}
+          </span>
         </NuxtLink>
       </nav>
 

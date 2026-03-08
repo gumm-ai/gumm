@@ -27,5 +27,22 @@
     "Send an email with an image attachment",
     "Download the attachment from that email",
     "Search my inbox for messages from GitHub"
-  ]
+  ],
+  "commands": [
+    {
+      "name": "inbox",
+      "shortDescription": "Check your latest Gmail messages",
+      "description": "Use the gmail_list tool to fetch the 10 most recent unread emails from the inbox. Display sender, subject, and date for each. Highlight any urgent or important messages. Keep the output scannable and concise."
+    },
+    {
+      "name": "email",
+      "shortDescription": "Compose and send an email via Gmail",
+      "description": "Ask the user for the recipient, subject, and body if not already provided. Then use the gmail_send tool to send the email. Confirm the details before sending and report success once done."
+    }
+  ],
+  "icon": "simple-icons:gmail",
+  "color": "text-rose-400 bg-rose-500/10 border-rose-500/20",
+  "setup": {
+    "type": "gmail-oauth"
+  }
 }

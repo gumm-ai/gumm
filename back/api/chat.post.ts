@@ -16,6 +16,7 @@ import {
   conversations,
   messages as messagesTable,
   commands,
+  commandModules,
 } from '../db/schema';
 import { lookupCache, cacheResponse } from '../utils/semantic-cache';
 import { isRedisAvailable } from '../utils/redis';
@@ -178,6 +179,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // ── Command expansion — expand /commands into full prompts ──────────────
+  let commandLinkedModuleIds: string[] | null = null;
   const expandedMessages = await Promise.all(
     sanitizedMessages.map(async (msg) => {
       if (msg.role !== 'user') return msg;
@@ -203,6 +205,15 @@ export default defineEventHandler(async (event) => {
 
       if (!cmd) return msg; // Command not found, pass through as normal message
 
+      // Check for linked modules (scoped tool usage)
+      const links = await useDrizzle()
+        .select({ moduleId: commandModules.moduleId })
+        .from(commandModules)
+        .where(eq(commandModules.commandId, cmd.id));
+      if (links.length > 0) {
+        commandLinkedModuleIds = links.map((l) => l.moduleId);
+      }
+
       // Expand the command into a detailed prompt
       const expandedContent = `[Command: /${cmd.name}]\n\nCommand Description: ${cmd.description}\n\nUser Input: ${cmdArgs || '(no additional input)'}\n\nExecute this command according to its description.`;
 
@@ -213,7 +224,11 @@ export default defineEventHandler(async (event) => {
   // ── Brain pipeline ────────────────────────────────────────────────────────
   const registry = useModuleRegistry();
   await registry.ready();
-  const tools = [...getBuiltinTools(), ...registry.getAllTools()];
+  // If command has linked modules, only use those modules' tools
+  const moduleTools = commandLinkedModuleIds
+    ? registry.getToolsForModules(commandLinkedModuleIds)
+    : registry.getAllTools();
+  const tools = [...getBuiltinTools(), ...moduleTools];
 
   // Build optimised messages via Brain (dynamic system prompt + memories + context window)
   const llmMessages: any[] = await brain.prepareMessages(expandedMessages);

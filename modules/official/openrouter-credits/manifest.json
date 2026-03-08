@@ -23,5 +23,18 @@
     "What's my remaining OpenRouter balance?",
     "Which model costs me the most?",
     "How many credits did I use this week?"
-  ]
+  ],
+  "commands": [
+    {
+      "name": "credits",
+      "shortDescription": "Check OpenRouter balance and LLM spending",
+      "description": "Use the credits_status tool to fetch the current OpenRouter balance, today's spending, and this week's total consumption. Show a clear summary with remaining credits prominently displayed. Include a per-model breakdown if available. Flag if daily spending is unusually high."
+    }
+  ],
+  "icon": "lucide:activity",
+  "color": "text-amber-400 bg-amber-500/10 border-amber-500/20",
+  "setup": {
+    "type": "navigate",
+    "route": "/modules/openrouter-credits"
+  }
 }

@@ -278,6 +278,33 @@ export const userSecrets = sqliteTable('user_secrets', {
 export const selectUserSecretSchema = createSelectSchema(userSecrets);
 export const insertUserSecretSchema = createInsertSchema(userSecrets);
 
+// ─── Background Jobs (Multi-agent parallel task runner) ─────────────────────
+
+export const backgroundJobs = sqliteTable('background_jobs', {
+  id: text('id').primaryKey(), // UUID
+  title: text('title').notNull(), // Short label for the UI
+  prompt: text('prompt').notNull(), // Full task instruction
+  status: text('status', {
+    enum: ['pending', 'running', 'done', 'failed', 'cancelled'],
+  })
+    .notNull()
+    .default('pending'),
+  result: text('result'), // Final LLM response text
+  error: text('error'), // Error message if failed
+  conversationId: text('conversation_id').notNull(), // Dedicated conversation thread
+  parentConversationId: text('parent_conversation_id'), // Originating chat (if spawned inline)
+  model: text('model'), // LLM model used
+  moduleIds: text('module_ids'), // JSON array of specific module IDs to use (null = all)
+  iterations: integer('iterations').notNull().default(0), // Number of LLM iterations
+  startedAt: integer('started_at', { mode: 'timestamp_ms' }),
+  completedAt: integer('completed_at', { mode: 'timestamp_ms' }),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+});
+
+export const selectBackgroundJobSchema = createSelectSchema(backgroundJobs);
+export const insertBackgroundJobSchema = createInsertSchema(backgroundJobs);
+
 // ─── Storage Nodes (Centralized file storage devices — "stomach") ───────────
 
 export const storageNodes = sqliteTable('storage_nodes', {
@@ -354,3 +381,12 @@ export const commands = sqliteTable('commands', {
 
 export const selectCommandSchema = createSelectSchema(commands);
 export const insertCommandSchema = createInsertSchema(commands);
+
+// ─── Command Modules (Many-to-many: commands ↔ modules) ────────────────────
+
+export const commandModules = sqliteTable('command_modules', {
+  commandId: text('command_id')
+    .notNull()
+    .references(() => commands.id, { onDelete: 'cascade' }),
+  moduleId: text('module_id').notNull(),
+});

@@ -1,0 +1,48 @@
+{
+  "id": "reddit",
+  "name": "Reddit",
+  "version": "1.0.0",
+  "description": "Browse subreddits, search posts, submit content, comment, vote, and monitor communities automatically. Requires Reddit OAuth credentials configured in the APIs page.",
+  "entrypoint": "index.ts",
+  "capabilities": ["fetch", "social", "reddit"],
+  "dependencies": [],
+  "schema": {
+    "subreddit": "string",
+    "query": "string",
+    "sort": "string",
+    "limit": "number",
+    "thingId": "string",
+    "text": "string"
+  },
+  "schedules": [
+    {
+      "name": "reddit-monitor",
+      "cron": "0 * * * *",
+      "handler": "reddit_run_monitor",
+      "description": "Every hour: fetches new posts for all monitored subreddits/keywords and stores them."
+    }
+  ],
+  "author": {
+    "name": "Gumm Team",
+    "url": "https://github.com/gumm-isles"
+  },
+  "repository": "gumm-isles/reddit",
+  "defaultEnabled": false,
+  "examples": [
+    "Show me hot posts from r/programming",
+    "Search Reddit for AI agents",
+    "Post in r/test: Hello from Gumm",
+    "Comment on this Reddit post",
+    "Watch r/technology for keyword 'open source'",
+    "What's new in my monitored subreddits?"
+  ],
+  "commands": [
+    {
+      "name": "reddit",
+      "shortDescription": "Show updates from your monitored subreddits",
+      "description": "Use the reddit_get_watched tool to fetch recent posts captured by the monitoring system. Display the top posts with title, subreddit, score, and comment count. If nothing is being monitored, fall back to reddit_get_feed for hot posts from r/all. If the user added a subreddit name after /reddit, use that as the subreddit parameter."
+    }
+  ],
+  "icon": "simple-icons:reddit",
+  "color": "text-orange-400 bg-orange-500/10 border-orange-500/20"
+}

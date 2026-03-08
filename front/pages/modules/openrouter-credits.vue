@@ -129,7 +129,7 @@ const periodCards = computed(() => [
     >
       <div class="flex items-center gap-2.5">
         <NuxtLink
-          to="/isles"
+          to="/modules"
           class="flex items-center gap-1 text-gumm-muted transition-colors hover:text-gumm-text"
         >
           <Icon name="lucide:arrow-left" class="h-3.5 w-3.5" />

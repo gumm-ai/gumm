@@ -84,7 +84,7 @@ async function updateModule() {
 async function uninstallModule() {
   if (!confirm(`Uninstall "${mod.value?.name}"?`)) return;
   await $fetch(`/api/modules/${moduleId}`, { method: 'DELETE' });
-  await navigateTo('/isles');
+  await navigateTo('/modules');
 }
 
 async function forceReload() {
@@ -213,7 +213,7 @@ onUnmounted(() => {
     >
       <div class="flex items-center gap-2.5">
         <NuxtLink
-          to="/isles"
+          to="/modules"
           class="text-gumm-muted hover:text-gumm-text transition-colors"
         >
           <Icon name="lucide:arrow-left" class="h-4 w-4" />
@@ -277,7 +277,7 @@ onUnmounted(() => {
     </header>
 
     <div v-if="!mod" class="flex flex-1 items-center justify-center">
-      <p class="text-gumm-muted">Isle not found</p>
+      <p class="text-gumm-muted">Module not found</p>
     </div>
 
     <div v-else class="flex-1 overflow-y-auto p-4 space-y-4">
@@ -699,7 +699,7 @@ onUnmounted(() => {
           </div>
         </div>
         <p v-else class="text-xs text-gumm-muted">
-          No memory entries for this isle
+          No memory entries for this module
         </p>
       </section>
 

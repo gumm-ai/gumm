@@ -1,0 +1,46 @@
+{
+  "id": "linkedin",
+  "name": "LinkedIn",
+  "version": "1.0.0",
+  "description": "Browse your LinkedIn feed, publish posts, comment, react to content, and get a daily digest of your network. Requires LinkedIn OAuth configured in the APIs page.",
+  "entrypoint": "index.ts",
+  "capabilities": ["fetch", "social", "linkedin"],
+  "dependencies": [],
+  "schema": {
+    "text": "string",
+    "shareUrn": "string",
+    "keywords": "array",
+    "count": "number"
+  },
+  "schedules": [
+    {
+      "name": "linkedin-morning-digest",
+      "cron": "0 8 * * *",
+      "handler": "linkedin_run_digest",
+      "description": "Every morning at 8:00: fetches LinkedIn feed and stores it for digest."
+    }
+  ],
+  "author": {
+    "name": "Gumm Team",
+    "url": "https://github.com/gumm-isles"
+  },
+  "repository": "gumm-isles/linkedin",
+  "defaultEnabled": false,
+  "examples": [
+    "Show me my LinkedIn feed",
+    "Post on LinkedIn: 'Excited to share...'",
+    "Comment on this LinkedIn post",
+    "Like this LinkedIn post",
+    "Watch LinkedIn for keyword 'artificial intelligence'",
+    "Give me my LinkedIn morning digest"
+  ],
+  "commands": [
+    {
+      "name": "linkedin",
+      "shortDescription": "Show your LinkedIn feed and network updates",
+      "description": "Call linkedin_get_feed to fetch the latest 10 posts from the user's LinkedIn feed. Summarize the most interesting or relevant content, highlighting posts from close connections or trending topics. Be professional and keep the summary brief and scannable."
+    }
+  ],
+  "icon": "simple-icons:linkedin",
+  "color": "text-blue-400 bg-blue-500/10 border-blue-500/20"
+}

@@ -31,5 +31,14 @@
     "What's my fitness progress this month?",
     "I have bad knees, adapt my workout",
     "I only have dumbbells at home, what can I do?"
-  ]
+  ],
+  "commands": [
+    {
+      "name": "fitness",
+      "shortDescription": "Quick fitness check-in and coaching advice",
+      "description": "Use the fitness_get_profile tool to retrieve the user's fitness profile, then call fitness_get_sessions to show recent workouts. Provide a brief coaching summary: what they did recently, how they're progressing toward their goals, and one concrete actionable tip for today. Be encouraging, motivating, and concise."
+    }
+  ],
+  "icon": "lucide:dumbbell",
+  "color": "text-pink-400 bg-pink-500/10 border-pink-500/20"
 }

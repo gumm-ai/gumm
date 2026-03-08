@@ -22,6 +22,7 @@ import {
   conversations,
   messages as messagesTable,
   commands,
+  commandModules,
 } from '../db/schema';
 import { redactSecrets } from './secrets';
 import { getLLMConfig, callLLM, getProviderDisplayName } from './llm-provider';
@@ -129,6 +130,14 @@ export async function processTelegramUpdate(
         // Replace the user text with an expanded prompt including the command description
         const expandedPrompt = `[Command: /${cmd.name}]\n\nCommand Description: ${cmd.description}\n\nUser Input: ${cmdArgs || '(no additional input)'}\n\nExecute this command according to its description.`;
 
+        // Check for linked modules (scoped tool usage)
+        const links = await useDrizzle()
+          .select({ moduleId: commandModules.moduleId })
+          .from(commandModules)
+          .where(eq(commandModules.commandId, cmd.id));
+        const linkedModuleIds =
+          links.length > 0 ? links.map((l) => l.moduleId) : null;
+
         // Continue processing with the expanded prompt instead of raw command
         // We'll modify userText and let it flow through the normal AI pipeline
         await telegramSendChatAction(token, chatId).catch(() => {});
@@ -139,7 +148,10 @@ export async function processTelegramUpdate(
 
         const registry = useModuleRegistry();
         await registry.ready();
-        const tools = [...getBuiltinTools(), ...registry.getAllTools()];
+        const moduleTools = linkedModuleIds
+          ? registry.getToolsForModules(linkedModuleIds)
+          : registry.getAllTools();
+        const tools = [...getBuiltinTools(), ...moduleTools];
 
         const drizzle = useDrizzle();
         const telegramConversationId = `telegram-${chatId}`;

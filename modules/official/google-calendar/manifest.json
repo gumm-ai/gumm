@@ -32,5 +32,22 @@
     "Move the meeting from 2pm to 3pm",
     "Cancel my 4pm appointment",
     "Show me my events for this week"
-  ]
+  ],
+  "commands": [
+    {
+      "name": "agenda",
+      "shortDescription": "Show today's and tomorrow's calendar events",
+      "description": "Use the gcal_list tool to retrieve events for today and tomorrow. Display them in chronological order with time, event title, and location if available. Mention any scheduling conflicts or back-to-back meetings. Be concise and practical."
+    },
+    {
+      "name": "meeting",
+      "shortDescription": "Create a new calendar event or meeting",
+      "description": "Parse the user's input after the command for event details (title, date, time, duration, attendees, location). If information is missing, ask for it. Use the gcal_create tool to create the event. Confirm the details with the user before creating, then report the event ID and link."
+    }
+  ],
+  "icon": "lucide:calendar",
+  "color": "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+  "setup": {
+    "type": "gmail-oauth"
+  }
 }

@@ -19,6 +19,7 @@ import {
 } from './recurring-tasks';
 import { storageGet, storageList, storageInfo } from './storage';
 import { createAgentTask } from './agent-tasks';
+import { spawnBackgroundJob } from './background-jobs';
 import {
   telegramSendMessage,
   telegramSendPhoto,
@@ -427,6 +428,31 @@ export function getBuiltinTools(): ToolDefinition[] {
         },
       },
     },
+    // ── Background Jobs (multi-agent parallel tasks) ────────────────────
+    {
+      type: 'function',
+      function: {
+        name: 'spawn_background_task',
+        description:
+          'Spawn an independent background task that runs in parallel without blocking the current conversation. Use this when the user asks you to do multiple things at once, or for long-running work (research, multi-step analysis, complex automations) that should not tie up the chat. Each task gets its own AI loop with full tool access. The user can monitor tasks in the Jobs dashboard. Examples: "research X while we talk about Y", "do all of these things simultaneously", "run that in the background".',
+        parameters: {
+          type: 'object',
+          properties: {
+            title: {
+              type: 'string',
+              description:
+                'A short, descriptive title for this task (e.g. "Research best React patterns", "Compile weekly report"). Shown in the Jobs UI.',
+            },
+            prompt: {
+              type: 'string',
+              description:
+                'The full, detailed instruction for the background agent. Be thorough — include all context, goals, and expected output format. The agent will use this as its task description.',
+            },
+          },
+          required: ['title', 'prompt'],
+        },
+      },
+    },
     // ── CLI Agent Task (delegate to user's PC) ──────────────────────────
     {
       type: 'function',
@@ -795,6 +821,15 @@ export async function executeBuiltinTool(
     case 'personal_fact_delete': {
       await deletePersonalFact(args.id);
       return `Personal fact ${args.id} deleted.`;
+    }
+    // ── Background Jobs ───────────────────────────────────────────────
+    case 'spawn_background_task': {
+      const jobId = await spawnBackgroundJob({
+        title: args.title,
+        prompt: args.prompt,
+        parentConversationId: channelCtx?.conversationId,
+      });
+      return `Background task spawned (id: ${jobId}). Title: "${args.title}". The task is now running independently. The user can monitor it in the Jobs dashboard.`;
     }
     // ── CLI Agent Task ────────────────────────────────────────────────
     case 'execute_on_cli': {

@@ -19,5 +19,19 @@
     "Will it rain tomorrow in London?",
     "Give me the 7-day forecast for Tokyo",
     "What's the temperature in New York right now?"
-  ]
+  ],
+  "commands": [
+    {
+      "name": "weather",
+      "shortDescription": "Current weather and forecast for your location",
+      "description": "Use the weather_current tool to fetch weather for the user's location. If a location is specified after /weather use that, otherwise check brain config for a saved location or ask. Show temperature, conditions, humidity, and wind speed. Include today's forecast. Add a practical tip (bring an umbrella, apply sunscreen, etc.)."
+    },
+    {
+      "name": "forecast",
+      "shortDescription": "7-day weather forecast for any location",
+      "description": "Use the weather_forecast tool with days=7 for the specified location (or ask for one). Present the week's forecast in a compact day-by-day format with high/low temperatures and main conditions. Highlight any significant weather events (rain, storms, heatwave)."
+    }
+  ],
+  "icon": "lucide:cloud-sun",
+  "color": "text-amber-400 bg-amber-500/10 border-amber-500/20"
 }

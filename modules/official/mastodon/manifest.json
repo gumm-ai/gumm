@@ -1,0 +1,52 @@
+{
+  "id": "mastodon",
+  "name": "Mastodon",
+  "version": "1.0.0",
+  "description": "Browse timelines, post toots, reply, boost, favourite, and monitor hashtags on any Mastodon instance. Works with mastodon.social, fosstodon.org, and any ActivityPub instance. Requires Mastodon OAuth configured in the APIs page.",
+  "entrypoint": "index.ts",
+  "capabilities": ["fetch", "social", "mastodon"],
+  "dependencies": [],
+  "schema": {
+    "text": "string",
+    "statusId": "string",
+    "hashtag": "string",
+    "type": "string",
+    "limit": "number"
+  },
+  "schedules": [
+    {
+      "name": "mastodon-hashtag-watch",
+      "cron": "*/30 * * * *",
+      "handler": "mastodon_run_hashtag_watch",
+      "description": "Every 30 minutes: fetches new toots for all monitored hashtags."
+    }
+  ],
+  "author": {
+    "name": "Gumm Team",
+    "url": "https://github.com/gumm-isles"
+  },
+  "repository": "gumm-isles/mastodon",
+  "defaultEnabled": false,
+  "examples": [
+    "Show me my Mastodon home timeline",
+    "Post a toot: 'Hello from Gumm!'",
+    "Search Mastodon for #OpenSource",
+    "Boost this toot",
+    "Watch the hashtag #linux on Mastodon",
+    "What's new in my monitored Mastodon hashtags?"
+  ],
+  "commands": [
+    {
+      "name": "mastodon",
+      "shortDescription": "Show your Mastodon home timeline",
+      "description": "Use the mastodon_timeline tool with type 'home' and limit 15 to fetch the latest toots. Present them in a clean reading format: author handle, content, boost/favourite counts. If the user monitors hashtags, also check mastodon_watched_hashtags for new content and mention highlights."
+    },
+    {
+      "name": "toot",
+      "shortDescription": "Post a toot on Mastodon",
+      "description": "Use the text provided by the user after the command as the toot content. If no text is given, ask what they want to post. Use the mastodon_post tool to publish the toot. Confirm the toot URL after posting successfully."
+    }
+  ],
+  "icon": "simple-icons:mastodon",
+  "color": "text-indigo-400 bg-indigo-500/10 border-indigo-500/20"
+}

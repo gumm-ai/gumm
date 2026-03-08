@@ -51,7 +51,7 @@ async function changePassword() {
 
 <template>
   <section
-    class="rounded-xl border border-gumm-border bg-gumm-surface p-4 max-w-lg"
+    class="rounded-xl border border-gumm-border bg-gumm-surface p-5 flex flex-col h-full"
   >
     <div class="flex items-center gap-2 mb-4">
       <Icon name="lucide:lock" class="h-4 w-4 text-gumm-accent" />

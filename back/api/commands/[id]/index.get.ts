@@ -4,7 +4,7 @@
  * Get a single command by ID.
  */
 import { eq } from 'drizzle-orm';
-import { commands } from '../../../db/schema';
+import { commands, commandModules } from '../../../db/schema';
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event);
@@ -17,7 +17,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Command ID is required' });
   }
 
-  const [cmd] = await useDrizzle()
+  const db = useDrizzle();
+
+  const [cmd] = await db
     .select()
     .from(commands)
     .where(eq(commands.id, id))
@@ -27,6 +29,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Command not found' });
   }
 
+  const links = await db
+    .select({ moduleId: commandModules.moduleId })
+    .from(commandModules)
+    .where(eq(commandModules.commandId, id));
+
   return {
     id: cmd.id,
     name: cmd.name,
@@ -35,6 +42,7 @@ export default defineEventHandler(async (event) => {
     moduleId: cmd.moduleId,
     enabled: cmd.enabled,
     isUserCreated: !cmd.moduleId,
+    linkedModuleIds: links.map((l) => l.moduleId),
     createdAt: cmd.createdAt,
     updatedAt: cmd.updatedAt,
   };

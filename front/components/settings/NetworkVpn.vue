@@ -92,7 +92,7 @@ onMounted(() => {
 
 <template>
   <section
-    class="rounded-xl border border-gumm-border bg-gumm-surface p-4 max-w-lg"
+    class="rounded-xl border border-gumm-border bg-gumm-surface p-5 flex flex-col h-full"
   >
     <div class="flex items-center justify-between mb-1">
       <div class="flex items-center gap-2">

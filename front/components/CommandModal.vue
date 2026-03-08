@@ -9,6 +9,13 @@ interface Command {
   moduleId: string | null;
   enabled: boolean;
   isUserCreated: boolean;
+  linkedModuleIds?: string[];
+}
+
+interface Module {
+  id: string;
+  name: string;
+  status: string;
 }
 
 const props = defineProps<{
@@ -25,15 +32,52 @@ const form = ref({
   name: '',
   shortDescription: '',
   description: '',
+  linkedModuleIds: [] as string[],
 });
 
 const saving = ref(false);
 const improving = ref(false);
 const error = ref('');
+const moduleSearch = ref('');
+const showModuleDropdown = ref(false);
 
 const isEditing = computed(() => !!props.command);
 const isModuleCommand = computed(() => !!props.command?.moduleId);
 const canEdit = computed(() => !isModuleCommand.value);
+
+// Fetch available modules
+const { data: availableModules } = useFetch<Module[]>('/api/modules');
+
+const filteredModules = computed(() => {
+  const modules = (availableModules.value || []).filter(
+    (m) => m.status === 'active' && !form.value.linkedModuleIds.includes(m.id),
+  );
+  if (!moduleSearch.value) return modules;
+  const q = moduleSearch.value.toLowerCase();
+  return modules.filter(
+    (m) => m.id.includes(q) || m.name.toLowerCase().includes(q),
+  );
+});
+
+function addModule(moduleId: string) {
+  if (!form.value.linkedModuleIds.includes(moduleId)) {
+    form.value.linkedModuleIds.push(moduleId);
+  }
+  moduleSearch.value = '';
+  showModuleDropdown.value = false;
+}
+
+function removeModule(moduleId: string) {
+  form.value.linkedModuleIds = form.value.linkedModuleIds.filter(
+    (id) => id !== moduleId,
+  );
+}
+
+function getModuleName(moduleId: string): string {
+  return (
+    availableModules.value?.find((m) => m.id === moduleId)?.name || moduleId
+  );
+}
 
 // Reset form when modal opens/closes or command changes
 watch(
@@ -45,15 +89,19 @@ watch(
           name: props.command.name,
           shortDescription: props.command.shortDescription,
           description: props.command.description,
+          linkedModuleIds: [...(props.command.linkedModuleIds || [])],
         };
       } else {
         form.value = {
           name: '',
           shortDescription: '',
           description: '',
+          linkedModuleIds: [],
         };
       }
       error.value = '';
+      moduleSearch.value = '';
+      showModuleDropdown.value = false;
     }
   },
   { immediate: true },
@@ -133,8 +181,11 @@ async function handleSubmit() {
               name: form.value.name,
               shortDescription: form.value.shortDescription,
               description: form.value.description,
+              linkedModuleIds: form.value.linkedModuleIds,
             }
-          : {}, // Module commands can't be edited, only toggled
+          : {
+              linkedModuleIds: form.value.linkedModuleIds,
+            },
       });
     } else {
       await $fetch('/api/commands', {
@@ -143,6 +194,7 @@ async function handleSubmit() {
           name: form.value.name,
           shortDescription: form.value.shortDescription,
           description: form.value.description,
+          linkedModuleIds: form.value.linkedModuleIds,
         },
       });
     }
@@ -272,6 +324,96 @@ async function handleSubmit() {
                 :disabled="isModuleCommand"
                 class="w-full rounded-lg border border-gumm-border bg-gumm-surface px-3 py-2 text-sm text-gumm-text placeholder-gumm-muted/50 transition-colors focus:border-gumm-accent focus:outline-none resize-none disabled:opacity-50"
               />
+            </div>
+
+            <!-- Linked Modules (optional) -->
+            <div>
+              <label class="block text-xs font-medium text-gumm-muted mb-1.5">
+                Linked Modules
+                <span class="font-normal text-gumm-muted/60">(optional)</span>
+              </label>
+              <p class="text-[10px] text-gumm-muted mb-2">
+                Restrict this command to only use tools from specific modules.
+                Leave empty to use all available tools.
+              </p>
+
+              <!-- Selected modules -->
+              <div
+                v-if="form.linkedModuleIds.length > 0"
+                class="flex flex-wrap gap-1.5 mb-2"
+              >
+                <span
+                  v-for="modId in form.linkedModuleIds"
+                  :key="modId"
+                  class="inline-flex items-center gap-1 rounded-md bg-gumm-accent/10 border border-gumm-accent/20 px-2 py-0.5 text-xs text-gumm-accent"
+                >
+                  <Icon name="lucide:package" class="h-3 w-3" />
+                  {{ getModuleName(modId) }}
+                  <button
+                    type="button"
+                    class="ml-0.5 hover:text-red-400 transition-colors"
+                    @click="removeModule(modId)"
+                  >
+                    <Icon name="lucide:x" class="h-3 w-3" />
+                  </button>
+                </span>
+              </div>
+
+              <!-- Module search input -->
+              <div class="relative">
+                <div class="relative">
+                  <Icon
+                    name="lucide:search"
+                    class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gumm-muted"
+                  />
+                  <input
+                    v-model="moduleSearch"
+                    type="text"
+                    placeholder="Search modules to add..."
+                    class="w-full rounded-lg border border-gumm-border bg-gumm-surface pl-8 pr-3 py-1.5 text-xs text-gumm-text placeholder-gumm-muted/50 transition-colors focus:border-gumm-accent focus:outline-none"
+                    @focus="showModuleDropdown = true"
+                    @blur="setTimeout(() => (showModuleDropdown = false), 200)"
+                  />
+                </div>
+
+                <!-- Dropdown -->
+                <div
+                  v-if="showModuleDropdown && filteredModules.length > 0"
+                  class="absolute z-20 mt-1 w-full max-h-40 overflow-y-auto rounded-lg border border-gumm-border bg-gumm-bg shadow-xl"
+                >
+                  <button
+                    v-for="mod in filteredModules"
+                    :key="mod.id"
+                    type="button"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-gumm-text transition-colors hover:bg-gumm-surface"
+                    @mousedown.prevent="addModule(mod.id)"
+                  >
+                    <Icon
+                      name="lucide:package"
+                      class="h-3.5 w-3.5 text-gumm-muted shrink-0"
+                    />
+                    <div class="min-w-0">
+                      <span class="font-medium">{{ mod.name }}</span>
+                      <span class="text-gumm-muted ml-1.5 font-mono">{{
+                        mod.id
+                      }}</span>
+                    </div>
+                  </button>
+                </div>
+
+                <div
+                  v-if="
+                    showModuleDropdown &&
+                    filteredModules.length === 0 &&
+                    moduleSearch
+                  "
+                  class="absolute z-20 mt-1 w-full rounded-lg border border-gumm-border bg-gumm-bg p-3 shadow-xl"
+                >
+                  <p class="text-xs text-gumm-muted text-center">
+                    No matching modules
+                  </p>
+                </div>
+              </div>
             </div>
 
             <!-- Actions -->

@@ -336,7 +336,7 @@ const recurringActiveCount = computed(
             <p class="text-sm text-gumm-muted">No scheduled tasks</p>
             <p class="text-xs text-gumm-muted">
               Schedules are created by
-              <NuxtLink to="/isles" class="text-gumm-accent hover:underline"
+              <NuxtLink to="/modules" class="text-gumm-accent hover:underline"
                 >modules</NuxtLink
               >
             </p>

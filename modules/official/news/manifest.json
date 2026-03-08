@@ -22,5 +22,14 @@
     "Search for news about AI",
     "What's happening in tech news?",
     "Show me US news about climate change"
-  ]
+  ],
+  "commands": [
+    {
+      "name": "news",
+      "shortDescription": "Get today's top news headlines",
+      "description": "Use the news_fetch tool to get the latest top headlines. Adapt the country and language to the user's configured preferences if known. If the user wrote text after /news, treat it as a topic filter. Show 8-10 headlines with their source and a one-sentence summary. Group by topic if diverse."
+    }
+  ],
+  "icon": "lucide:newspaper",
+  "color": "text-slate-400 bg-slate-500/10 border-slate-500/20"
 }

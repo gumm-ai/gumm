@@ -246,7 +246,7 @@ export const providers: ProviderTemplate[] = [
     helpSteps: [
       'Go to developer.spotify.com/dashboard and sign in',
       'Click "Create App"',
-      'Set a redirect URI to your Gumm callback URL',
+      'In the app settings, add this redirect URI: https://<your-gumm-domain>/api/spotify/callback',
       'Copy the Client ID and Client Secret from the app settings',
     ],
   },

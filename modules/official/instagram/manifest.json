@@ -1,0 +1,47 @@
+{
+  "id": "instagram",
+  "name": "Instagram",
+  "version": "1.0.0",
+  "description": "View your Instagram media, publish photos, reply to comments, and monitor hashtags. Uses the Instagram Graph API — requires a Pro or Creator account linked to a Facebook Page. Configure in the APIs page.",
+  "entrypoint": "index.ts",
+  "capabilities": ["fetch", "social", "instagram"],
+  "dependencies": [],
+  "schema": {
+    "mediaId": "string",
+    "imageUrl": "string",
+    "caption": "string",
+    "hashtag": "string",
+    "limit": "number"
+  },
+  "schedules": [
+    {
+      "name": "instagram-hashtag-watch",
+      "cron": "0 * * * *",
+      "handler": "instagram_run_hashtag_watch",
+      "description": "Every hour: fetches new top posts for monitored hashtags (max 30 unique hashtags/week per the Instagram API limits)."
+    }
+  ],
+  "author": {
+    "name": "Gumm Team",
+    "url": "https://github.com/gumm-isles"
+  },
+  "repository": "gumm-isles/instagram",
+  "defaultEnabled": false,
+  "examples": [
+    "Show me my latest Instagram posts",
+    "What are the stats on my last Instagram post?",
+    "Post this image to Instagram with caption 'Sunset view'",
+    "Reply to this Instagram comment",
+    "Watch the hashtag #photography on Instagram",
+    "What's new on my monitored Instagram hashtags?"
+  ],
+  "commands": [
+    {
+      "name": "instagram",
+      "shortDescription": "Show your latest Instagram posts and stats",
+      "description": "Use the instagram_media tool to fetch the user's 5 most recent Instagram posts. Show caption, like count, comment count, and publication date for each. Highlight the best performing post. Also check instagram_get_watched for any new content from monitored hashtags."
+    }
+  ],
+  "icon": "simple-icons:instagram",
+  "color": "text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/20"
+}

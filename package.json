@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@libsql/client": "^0.17.0",
+    "sharp": "^0.34.2",
     "@nuxt/icon": "1.15.0",
     "@tailwindcss/vite": "^4.2.1",
     "croner": "^10.0.1",

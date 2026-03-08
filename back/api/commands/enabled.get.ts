@@ -4,7 +4,7 @@
  * Returns only enabled commands. Used by CLI for suggestions.
  */
 import { eq } from 'drizzle-orm';
-import { commands } from '../../db/schema';
+import { commands, commandModules } from '../../db/schema';
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event);
@@ -12,8 +12,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, message: 'Unauthorized' });
   }
 
-  const enabledCommands = await useDrizzle()
+  const db = useDrizzle();
+
+  const enabledCommands = await db
     .select({
+      id: commands.id,
       name: commands.name,
       shortDescription: commands.shortDescription,
       description: commands.description,
@@ -23,5 +26,18 @@ export default defineEventHandler(async (event) => {
     .where(eq(commands.enabled, true))
     .orderBy(commands.name);
 
-  return enabledCommands;
+  // Fetch linked modules
+  const allLinks = await db.select().from(commandModules);
+  const linksByCommand = new Map<string, string[]>();
+  for (const link of allLinks) {
+    if (!linksByCommand.has(link.commandId)) {
+      linksByCommand.set(link.commandId, []);
+    }
+    linksByCommand.get(link.commandId)!.push(link.moduleId);
+  }
+
+  return enabledCommands.map((cmd) => ({
+    ...cmd,
+    linkedModuleIds: linksByCommand.get(cmd.id) || [],
+  }));
 });

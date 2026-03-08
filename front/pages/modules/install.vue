@@ -27,7 +27,7 @@ async function enableOfficialModule(moduleId: string) {
     // Official modules are already on disk — just trigger a reload so the
     // registry picks them up and the DB entry is created.
     await $fetch('/api/modules/reload', { method: 'POST' });
-    await navigateTo('/isles');
+    await navigateTo('/modules');
   } catch (err: any) {
     error.value = err.data?.message || err.message || 'Failed to enable module';
   } finally {
@@ -83,7 +83,7 @@ async function installModule() {
         ref: refInput.value || 'main',
       },
     });
-    await navigateTo('/isles');
+    await navigateTo('/modules');
   } catch (err: any) {
     error.value = err.data?.message || err.message || 'Installation failed';
   } finally {
@@ -99,13 +99,13 @@ async function installModule() {
       class="flex items-center gap-2.5 border-b border-gumm-border px-4 py-2.5"
     >
       <NuxtLink
-        to="/isles"
+        to="/modules"
         class="text-gumm-muted hover:text-gumm-text transition-colors"
       >
         <Icon name="lucide:arrow-left" class="h-4 w-4" />
       </NuxtLink>
       <Icon name="lucide:download" class="h-4 w-4 text-gumm-accent" />
-      <h1 class="text-base font-semibold">Install Isle</h1>
+      <h1 class="text-base font-semibold">Install Module</h1>
     </header>
 
     <div class="flex-1 overflow-y-auto p-4">

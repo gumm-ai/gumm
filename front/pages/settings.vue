@@ -19,13 +19,15 @@ definePageMeta({ layout: 'default' });
       <h1 class="text-base font-semibold">Settings</h1>
     </header>
 
-    <div class="flex-1 overflow-y-auto p-4 space-y-4">
-      <SettingsGuardrail />
-      <SettingsTimezone />
-      <SettingsChangePassword />
-      <SettingsNetworkVpn />
-      <SettingsTelegram />
-      <SettingsWebhooks />
+    <div class="flex-1 overflow-y-auto p-4 md:p-6 content-start bg-gumm-bg">
+      <div class="mx-auto grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-7xl">
+        <SettingsGuardrail class="sm:col-span-2 lg:col-span-2" />
+        <SettingsTimezone />
+        <SettingsNetworkVpn />
+        <SettingsTelegram />
+        <SettingsWebhooks />
+        <SettingsChangePassword />
+      </div>
     </div>
   </div>
 </template>

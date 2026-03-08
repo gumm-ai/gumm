@@ -1,0 +1,31 @@
+{
+  "id": "image-tools",
+  "name": "Image Tools",
+  "version": "1.0.0",
+  "description": "Manipulate images stored in Gumm or loaded from URLs. Resize, crop, convert formats (JPEG, PNG, WebP, AVIF), rotate, flip, apply filters (grayscale, blur, sharpen, normalize), and inspect image metadata.",
+  "entrypoint": "index.ts",
+  "capabilities": ["fetch"],
+  "defaultEnabled": false,
+  "author": {
+    "name": "Gumm Team",
+    "url": "https://github.com/gumm-isles"
+  },
+  "repository": "gumm-isles/image-tools",
+  "examples": [
+    "Resize my photo to 800x600 pixels",
+    "Convert photo.jpg to WebP with 80% quality",
+    "Crop the image to 400x400 starting from the top-left corner",
+    "Rotate this image 90 degrees clockwise",
+    "Convert this image to grayscale",
+    "What are the dimensions and format of my image?"
+  ],
+  "commands": [
+    {
+      "name": "images",
+      "shortDescription": "List and manage images stored in Gumm",
+      "description": "Use the storage_list tool to list images currently stored in Gumm. Show filename, size, and upload date for each. If text is provided after /images, interpret it as an operation request (e.g. 'resize X to 800px', 'convert X to webp') and execute the corresponding image_tools operation."
+    }
+  ],
+  "icon": "lucide:image",
+  "color": "text-purple-400 bg-purple-500/10 border-purple-500/20"
+}

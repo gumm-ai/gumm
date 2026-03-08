@@ -33,5 +33,19 @@
     "List my Spotify playlists",
     "Create a chill vibes playlist",
     "Add this song to my workout playlist"
-  ]
+  ],
+  "commands": [
+    {
+      "name": "spotify",
+      "shortDescription": "Check what's playing and recent Spotify activity",
+      "description": "Call spotify_now_playing to check if something is currently playing on Spotify. Then call spotify_recently_played to show the last 5 tracks. If something is playing, highlight the track name, artist, and album. Present recent plays in a clean list. Be conversational and music-friendly."
+    },
+    {
+      "name": "vibes",
+      "shortDescription": "Get personalized music recommendations",
+      "description": "Use spotify_top_items to get the user's top tracks and artists (short term), then call spotify_recommendations seeded with those items. Present 8-10 recommended tracks with artist names. Group them by mood or genre if possible. Offer to add them to a playlist."
+    }
+  ],
+  "icon": "simple-icons:spotify",
+  "color": "text-green-400 bg-green-500/10 border-green-500/20"
 }

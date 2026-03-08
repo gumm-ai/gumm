@@ -25,5 +25,14 @@
     "What's my current weight?",
     "How many calories did I burn yesterday?",
     "List my workouts from this week"
-  ]
+  ],
+  "commands": [
+    {
+      "name": "health",
+      "shortDescription": "Today's health summary: steps, sleep, heart rate",
+      "description": "Use the health_today tool to fetch today's health metrics (steps, calories burned, active minutes, heart rate). Then use health_sleep for last night's sleep summary. Present the data in a clean, motivating format with context (e.g. percentage toward daily step goal). End with one health tip based on the data."
+    }
+  ],
+  "icon": "lucide:heart-pulse",
+  "color": "text-red-400 bg-red-500/10 border-red-500/20"
 }

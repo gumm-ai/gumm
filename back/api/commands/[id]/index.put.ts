@@ -6,7 +6,7 @@
  * Body: { name?, shortDescription?, description?, enabled? }
  */
 import { eq } from 'drizzle-orm';
-import { commands } from '../../../db/schema';
+import { commands, commandModules } from '../../../db/schema';
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event);
@@ -24,6 +24,7 @@ export default defineEventHandler(async (event) => {
     shortDescription?: string;
     description?: string;
     enabled?: boolean;
+    linkedModuleIds?: string[];
   }>(event);
 
   const [existing] = await useDrizzle()
@@ -73,8 +74,23 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  const db = useDrizzle();
+
   try {
-    await useDrizzle().update(commands).set(updates).where(eq(commands.id, id));
+    await db.update(commands).set(updates).where(eq(commands.id, id));
+
+    // Update linked modules if provided (for both user and module commands)
+    if (body.linkedModuleIds !== undefined) {
+      await db.delete(commandModules).where(eq(commandModules.commandId, id));
+      if (body.linkedModuleIds.length > 0) {
+        await db.insert(commandModules).values(
+          body.linkedModuleIds.map((moduleId) => ({
+            commandId: id,
+            moduleId,
+          })),
+        );
+      }
+    }
   } catch (err: any) {
     if (err.message?.includes('UNIQUE constraint')) {
       throw createError({

@@ -25,5 +25,14 @@
     "Give me a digest of my GitHub activity",
     "List issues assigned to me",
     "What are my most recent starred repos?"
-  ]
+  ],
+  "commands": [
+    {
+      "name": "github",
+      "shortDescription": "GitHub activity digest: notifications and open PRs",
+      "description": "Call github_notifications to get unread notifications, then github_pull_requests to fetch open pull requests across repos. Summarize the activity in a clear digest: unread notification count, open PRs awaiting review, and any urgent items. Be brief and actionable."
+    }
+  ],
+  "icon": "simple-icons:github",
+  "color": "text-violet-400 bg-violet-500/10 border-violet-500/20"
 }

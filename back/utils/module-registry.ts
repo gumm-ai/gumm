@@ -580,6 +580,27 @@ class ModuleRegistry {
   }
 
   /**
+   * Get tool definitions from specific modules only
+   */
+  getToolsForModules(moduleIds: string[]): ToolDefinition[] {
+    const tools: ToolDefinition[] = [];
+    for (const id of moduleIds) {
+      const mod = this.modules.get(id);
+      if (mod && mod.status === 'loaded') {
+        try {
+          tools.push(...mod.tools());
+        } catch (err: any) {
+          console.error(
+            `[ModuleRegistry] Error getting tools from ${mod.manifest.id}:`,
+            err.message,
+          );
+        }
+      }
+    }
+    return tools;
+  }
+
+  /**
    * Call a specific module's tool directly (inter-module RPC).
    * Allows Module A to invoke Module B's handler without going through the LLM.
    */

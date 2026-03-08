@@ -2,9 +2,9 @@
  * POST /api/commands
  *
  * Create a new user command.
- * Body: { name, shortDescription, description }
+ * Body: { name, shortDescription, description, linkedModuleIds? }
  */
-import { commands } from '../../db/schema';
+import { commands, commandModules } from '../../db/schema';
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event);
@@ -16,6 +16,7 @@ export default defineEventHandler(async (event) => {
     name: string;
     shortDescription: string;
     description: string;
+    linkedModuleIds?: string[];
   }>(event);
 
   if (!body?.name?.trim()) {
@@ -52,8 +53,10 @@ export default defineEventHandler(async (event) => {
   const now = new Date();
   const id = crypto.randomUUID();
 
+  const db = useDrizzle();
+
   try {
-    await useDrizzle().insert(commands).values({
+    await db.insert(commands).values({
       id,
       name,
       shortDescription: body.shortDescription.trim(),
@@ -63,6 +66,16 @@ export default defineEventHandler(async (event) => {
       createdAt: now,
       updatedAt: now,
     });
+
+    // Save linked modules (optional)
+    if (body.linkedModuleIds?.length) {
+      await db.insert(commandModules).values(
+        body.linkedModuleIds.map((moduleId) => ({
+          commandId: id,
+          moduleId,
+        })),
+      );
+    }
   } catch (err: any) {
     if (err.message?.includes('UNIQUE constraint')) {
       throw createError({

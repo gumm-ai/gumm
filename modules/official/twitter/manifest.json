@@ -1,0 +1,52 @@
+{
+  "id": "twitter",
+  "name": "Twitter / X",
+  "version": "1.0.0",
+  "description": "Read your Twitter/X timeline, search tweets and hashtags, post tweets, reply, like, retweet, and monitor keywords automatically. Requires Twitter API v2 credentials configured in the APIs page.",
+  "entrypoint": "index.ts",
+  "capabilities": ["fetch", "social", "twitter"],
+  "dependencies": [],
+  "schema": {
+    "query": "string",
+    "text": "string",
+    "tweetId": "string",
+    "maxResults": "number",
+    "keywords": "array"
+  },
+  "schedules": [
+    {
+      "name": "twitter-keyword-watch",
+      "cron": "*/30 * * * *",
+      "handler": "twitter_run_keyword_watch",
+      "description": "Every 30 minutes: fetches new tweets for all monitored keywords and stores them."
+    }
+  ],
+  "author": {
+    "name": "Gumm Team",
+    "url": "https://github.com/gumm-isles"
+  },
+  "repository": "gumm-isles/twitter",
+  "defaultEnabled": false,
+  "examples": [
+    "Show me my Twitter timeline",
+    "Search tweets about AI agents",
+    "Post a tweet saying 'Hello from Gumm!'",
+    "Show me my Twitter mentions",
+    "Watch the keyword #OpenSource on Twitter",
+    "What's new on the keywords I'm monitoring?"
+  ],
+  "commands": [
+    {
+      "name": "twitter",
+      "shortDescription": "Show your Twitter/X timeline and recent mentions",
+      "description": "Use the twitter_timeline tool to fetch the latest tweets from the home timeline. Also call twitter_mentions to check for recent mentions or replies. Present a concise digest: top 5 timeline tweets and any mentions needing attention. Flag any viral or highly engaged tweets."
+    },
+    {
+      "name": "tweet",
+      "shortDescription": "Post a tweet on Twitter/X",
+      "description": "Use the text provided after the /tweet command as the tweet content. If no text is provided, ask the user what they want to tweet. Check the character count (max 280). Use the twitter_post tool to publish. Confirm with the tweet URL after successful posting."
+    }
+  ],
+  "icon": "simple-icons:x",
+  "color": "text-slate-400 bg-slate-500/10 border-slate-500/20"
+}
