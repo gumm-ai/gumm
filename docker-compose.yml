@@ -1,0 +1,105 @@
+services:
+  gumm:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gumm
+    ports:
+      # When using caddy proxy: remove this or set to 127.0.0.1:3000:3000
+      # Direct access: use VPN_BIND_IP to restrict to VPN only
+      - "${VPN_BIND_IP:-0.0.0.0}:${GUMM_PORT:-3000}:3000"
+    env_file:
+      - .env
+    environment:
+      - NITRO_BUN_IDLE_TIMEOUT=255
+      - TZ=${TZ:-Europe/Paris}
+    volumes:
+      - gumm-data:/app/.data
+      - tailscale-state:/var/lib/tailscale
+      - netbird-state:/var/lib/netbird
+      - ./modules/user:/app/modules/user
+      - ./brain:/app/brain
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    develop:
+      watch:
+        - action: rebuild
+          path: ./front
+          ignore:
+            - node_modules/
+        - action: rebuild
+          path: ./back
+        - action: rebuild
+          path: ./modules/official
+        - action: rebuild
+          path: ./nuxt.config.ts
+        - action: rebuild
+          path: ./package.json
+        - action: rebuild
+          path: ./bun.lock
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Optional: Caddy reverse proxy for VPN security
+  # Enable with: docker compose --profile proxy up -d
+  # Configure CADDY_DOMAIN in .env (e.g., vm4987.netbird.cloud or gumm.ts.net)
+  caddy:
+    image: caddy:2-alpine
+    container_name: gumm-caddy
+    profiles:
+      - proxy
+    ports:
+      - "${VPN_BIND_IP:-0.0.0.0}:${CADDY_HTTP_PORT:-80}:80"
+      - "${VPN_BIND_IP:-0.0.0.0}:${CADDY_HTTPS_PORT:-443}:443"
+    environment:
+      - CADDY_DOMAIN=${CADDY_DOMAIN:-localhost}
+    volumes:
+      - ./scripts/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+      # Tailscale certs (generated with: tailscale cert your-hostname.ts.net)
+      # This path is created by configure_caddy_ssl in setup-server.sh
+      - ${TAILSCALE_CERTS_PATH:-/var/lib/tailscale/certs}:/etc/caddy/tailscale-certs:ro
+    depends_on:
+      - gumm
+    restart: unless-stopped
+
+  redis:
+    image: redis/redis-stack-server:latest
+    container_name: gumm-redis
+    ports:
+      # Bind to localhost only — Redis has no auth, never expose to external networks
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # No-VPN profile: use when the host is already behind a network firewall and
+  # the embedded Tailscale/NetBird VPN is not needed. Drops NET_ADMIN/NET_RAW.
+  gumm-no-vpn:
+    extends:
+      service: gumm
+    cap_drop:
+      - ALL
+    cap_add: []
+    devices: []
+    profiles:
+      - no-vpn
+
+volumes:
+  gumm-data:
+  redis-data:
+  tailscale-state:
+  netbird-state:
+  caddy-data:
+  caddy-config:

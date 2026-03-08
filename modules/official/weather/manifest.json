@@ -1,0 +1,23 @@
+{
+  "id": "weather",
+  "name": "Weather",
+  "version": "1.0.0",
+  "description": "Fetch real-time weather and forecasts for any location. Uses Open-Meteo (free, no API key required).",
+  "entrypoint": "index.ts",
+  "capabilities": ["fetch"],
+  "schema": {
+    "location": "string",
+    "days": "number"
+  },
+  "author": {
+    "name": "Gumm Team",
+    "url": "https://github.com/gumm-isles"
+  },
+  "repository": "gumm-isles/weather",
+  "examples": [
+    "What's the weather in Paris?",
+    "Will it rain tomorrow in London?",
+    "Give me the 7-day forecast for Tokyo",
+    "What's the temperature in New York right now?"
+  ]
+}

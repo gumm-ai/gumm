@@ -1,0 +1,29 @@
+{
+  "id": "github-digest",
+  "name": "GitHub Digest",
+  "version": "1.0.0",
+  "description": "Get a digest of your GitHub activity: notifications, repository events, pull requests, issues, and starred repos. Requires a GitHub Personal Access Token configured in the APIs page.",
+  "entrypoint": "index.ts",
+  "capabilities": ["github", "fetch"],
+  "dependencies": [],
+  "schema": {
+    "owner": "string",
+    "repo": "string",
+    "state": "string",
+    "maxResults": "number",
+    "query": "string"
+  },
+  "author": {
+    "name": "Gumm Team",
+    "url": "https://github.com/gumm-isles"
+  },
+  "repository": "gumm-isles/github-digest",
+  "defaultEnabled": false,
+  "examples": [
+    "Show me my GitHub notifications",
+    "What are the open PRs on my repos?",
+    "Give me a digest of my GitHub activity",
+    "List issues assigned to me",
+    "What are my most recent starred repos?"
+  ]
+}

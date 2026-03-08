@@ -1,0 +1,31 @@
+{
+  "id": "gmail",
+  "name": "Gmail",
+  "version": "1.1.0",
+  "description": "Read, search and send emails via Gmail with attachment support. Requires OAuth setup in the Gmail isle settings.",
+  "entrypoint": "index.ts",
+  "capabilities": ["gmail", "email", "fetch"],
+  "schema": {
+    "to": "string",
+    "subject": "string",
+    "body": "string",
+    "query": "string",
+    "messageId": "string",
+    "attachmentId": "string",
+    "maxResults": "number",
+    "attachments": "array"
+  },
+  "author": {
+    "name": "Gumm Team",
+    "url": "https://github.com/gumm-isles"
+  },
+  "repository": "gumm-isles/gmail",
+  "defaultEnabled": false,
+  "examples": [
+    "Read my latest emails",
+    "Send an email to john@example.com about the meeting",
+    "Send an email with an image attachment",
+    "Download the attachment from that email",
+    "Search my inbox for messages from GitHub"
+  ]
+}

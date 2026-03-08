@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1735689600000,
+      "tag": "0001_initial-schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1741100400000,
+      "tag": "0002_brain-config",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1741186800000,
+      "tag": "0003_schedules",
+      "breakpoints": true
+    }
+  ]
+}

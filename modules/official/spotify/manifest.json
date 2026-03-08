@@ -1,0 +1,37 @@
+{
+  "id": "spotify",
+  "name": "Spotify",
+  "version": "1.0.0",
+  "description": "Control Spotify playback, browse listening history, get personalized recommendations, manage playlists, and discover new music. Requires Spotify OAuth setup in the APIs page.",
+  "entrypoint": "index.ts",
+  "capabilities": ["spotify", "music", "fetch"],
+  "schema": {
+    "query": "string",
+    "type": "string",
+    "limit": "number",
+    "timeRange": "string",
+    "playlistId": "string",
+    "name": "string",
+    "description": "string",
+    "trackUris": "array",
+    "seedTracks": "array",
+    "seedArtists": "array",
+    "seedGenres": "array"
+  },
+  "author": {
+    "name": "Gumm Team",
+    "url": "https://github.com/gumm-isles"
+  },
+  "repository": "gumm-isles/spotify",
+  "defaultEnabled": false,
+  "examples": [
+    "What am I listening to right now?",
+    "Show me my recently played tracks",
+    "What are my most listened to artists?",
+    "Search for Daft Punk on Spotify",
+    "Recommend me some music based on my taste",
+    "List my Spotify playlists",
+    "Create a chill vibes playlist",
+    "Add this song to my workout playlist"
+  ]
+}

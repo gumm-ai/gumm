@@ -1,0 +1,29 @@
+{
+  "id": "health",
+  "name": "Health",
+  "version": "1.0.0",
+  "description": "Access health & fitness data from Google Fit (steps, calories, sleep, heart rate, weight, workouts). Works with any device that syncs to Google Fit (Fitbit, Garmin, Samsung Health, Withings, etc.). Uses the same Google OAuth as Gmail.",
+  "entrypoint": "index.ts",
+  "capabilities": ["health", "fitness", "fetch"],
+  "dependencies": [],
+  "schema": {
+    "date": "string",
+    "days": "number",
+    "startDate": "string",
+    "endDate": "string"
+  },
+  "author": {
+    "name": "Gumm Team",
+    "url": "https://github.com/gumm-isles"
+  },
+  "repository": "gumm-isles/health",
+  "defaultEnabled": false,
+  "examples": [
+    "How many steps did I take today?",
+    "What was my sleep like last night?",
+    "Show me my heart rate data for the past week",
+    "What's my current weight?",
+    "How many calories did I burn yesterday?",
+    "List my workouts from this week"
+  ]
+}

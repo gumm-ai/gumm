@@ -1,0 +1,27 @@
+{
+  "id": "openrouter-credits",
+  "name": "OpenRouter Credits",
+  "version": "1.1.0",
+  "description": "Track your LLM spending in real-time. Monitor balance, daily and weekly costs, and per-model breakdown. Automatically snapshots credits at midnight for consumption tracking.",
+  "entrypoint": "index.ts",
+  "capabilities": ["monitoring"],
+  "schedules": [
+    {
+      "name": "daily-credits-snapshot",
+      "cron": "0 0 * * *",
+      "handler": "snapshot_credits",
+      "description": "Saves a snapshot of remaining credits at midnight for daily/weekly consumption tracking."
+    }
+  ],
+  "author": {
+    "name": "Gumm Team",
+    "url": "https://github.com/gumm-isles"
+  },
+  "repository": "gumm-isles/openrouter-credits",
+  "examples": [
+    "How much did I spend on OpenRouter today?",
+    "What's my remaining OpenRouter balance?",
+    "Which model costs me the most?",
+    "How many credits did I use this week?"
+  ]
+}

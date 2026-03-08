@@ -1,0 +1,26 @@
+{
+  "id": "news",
+  "name": "News",
+  "version": "1.0.0",
+  "description": "Fetch the latest news headlines by country and language. Uses Google News RSS (free, no API key required). Adapts to the user's configured language automatically.",
+  "entrypoint": "index.ts",
+  "capabilities": ["fetch"],
+  "schema": {
+    "topic": "string",
+    "country": "string",
+    "language": "string",
+    "count": "number"
+  },
+  "author": {
+    "name": "Gumm Team",
+    "url": "https://github.com/gumm-isles"
+  },
+  "repository": "gumm-isles/news",
+  "examples": [
+    "What's in the news today?",
+    "Give me the latest headlines in France",
+    "Search for news about AI",
+    "What's happening in tech news?",
+    "Show me US news about climate change"
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "id": "youtube-music",
+  "name": "YouTube Music",
+  "version": "1.0.0",
+  "description": "Browse YouTube Music library, search for music, get recommendations, manage playlists, and discover new songs. Uses the same Google OAuth as Gmail.",
+  "entrypoint": "index.ts",
+  "capabilities": ["youtube", "music", "fetch"],
+  "dependencies": [],
+  "schema": {
+    "query": "string",
+    "playlistId": "string",
+    "videoId": "string",
+    "title": "string",
+    "description": "string",
+    "videoIds": "array",
+    "maxResults": "number",
+    "categoryId": "string"
+  },
+  "author": {
+    "name": "Gumm Team",
+    "url": "https://github.com/gumm-isles"
+  },
+  "repository": "gumm-isles/youtube-music",
+  "defaultEnabled": false,
+  "examples": [
+    "Search for chill electronic music on YouTube Music",
+    "Show me my YouTube Music playlists",
+    "Create a study music playlist on YouTube",
+    "What's trending in music on YouTube?",
+    "Find songs similar to what I listen to",
+    "Add this video to my favorites playlist"
+  ]
+}

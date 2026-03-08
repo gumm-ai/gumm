@@ -1,0 +1,7 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "tables": {},
+  "views": {},
+  "enums": {}
+}

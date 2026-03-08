@@ -1,0 +1,35 @@
+{
+  "id": "fitness-coach",
+  "name": "Fitness & Nutrition Coach",
+  "version": "1.0.0",
+  "description": "Elite-level personal trainer and nutrition doctor. When activated, asks personalized onboarding questions via Telegram to understand your profile (sex, age, height, weight, goals, equipment, disabilities, diet...). Analyzes photos (body composition, exercise form, meals), creates personalized workout and nutrition plans. Acts as a coach for stars and high-level athletes.",
+  "entrypoint": "index.ts",
+  "capabilities": ["coaching", "vision", "nutrition", "fitness", "onboarding"],
+  "dependencies": [],
+  "schema": {
+    "photo_url": "string",
+    "workout_type": "string",
+    "duration_minutes": "number",
+    "calories": "number",
+    "meal_description": "string"
+  },
+  "author": {
+    "name": "Gumm Team",
+    "url": "https://github.com/gumm-isles"
+  },
+  "repository": "gumm-isles/fitness-coach",
+  "defaultEnabled": false,
+  "examples": [
+    "Set up my fitness profile",
+    "Analyze this photo of my body and tell me what to improve",
+    "Check my exercise form in this photo",
+    "Create a workout plan for me",
+    "What should I eat to lose weight?",
+    "I just did 30 minutes of running, log it",
+    "Analyze this meal photo and estimate calories",
+    "Give me a nutrition plan for muscle gain",
+    "What's my fitness progress this month?",
+    "I have bad knees, adapt my workout",
+    "I only have dumbbells at home, what can I do?"
+  ]
+}

@@ -1,0 +1,95 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-gumm-bg: #000000;
+  --color-gumm-surface: #0a0a0a;
+  --color-gumm-surface-2: #171717;
+  --color-gumm-accent: #ffffff;
+  --color-gumm-accent-hover: #e5e5e5;
+  --color-gumm-accent-glow: transparent;
+  --color-gumm-border: #262626;
+  --color-gumm-border-hover: #404040;
+  --color-gumm-text: #fafafa;
+  --color-gumm-muted: #a3a3a3;
+  --font-size-base: 0.875rem;
+  --line-height-base: 1.25rem;
+  --animate-fade-in: fadeIn 0.2s ease-out;
+  --animate-slide-up: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-pulse-dot: pulseDot 2s ease-in-out infinite;
+}
+
+/* ── Keyframes ──────────────────────────────────────────────────── */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseDot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.3);
+  }
+}
+
+/* ── Utility overrides replacing old glow/glass styles ──────────── */
+.glass {
+  background: var(--color-gumm-surface);
+  border: 1px solid var(--color-gumm-border);
+}
+
+.gradient-text {
+  /* Removed gradient for a bold, sober white text */
+  color: var(--color-gumm-text);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.glow-accent {
+  /* Minimal shadow instead of glow */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--color-gumm-border);
+}
+
+.glow-accent-sm {
+  /* Removed glow entirely for cleaner look */
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-gumm-border);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gumm-border-hover);
+}
+:root { color-scheme: dark; }

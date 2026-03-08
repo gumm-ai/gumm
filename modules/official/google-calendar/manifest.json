@@ -1,0 +1,36 @@
+{
+  "id": "google-calendar",
+  "name": "Google Calendar",
+  "version": "1.0.0",
+  "description": "Manage your Google Calendar: list events, create meetings, update or delete events, and check availability. Uses the same Google OAuth as Gmail.",
+  "entrypoint": "index.ts",
+  "capabilities": ["calendar", "fetch"],
+  "dependencies": [],
+  "schema": {
+    "summary": "string",
+    "description": "string",
+    "start": "string",
+    "end": "string",
+    "location": "string",
+    "attendees": "string",
+    "eventId": "string",
+    "calendarId": "string",
+    "timeMin": "string",
+    "timeMax": "string",
+    "maxResults": "number"
+  },
+  "author": {
+    "name": "Gumm Team",
+    "url": "https://github.com/gumm-isles"
+  },
+  "repository": "gumm-isles/google-calendar",
+  "defaultEnabled": false,
+  "examples": [
+    "What's on my calendar today?",
+    "Add a meeting with Paul tomorrow at 2pm",
+    "Am I free Thursday afternoon?",
+    "Move the meeting from 2pm to 3pm",
+    "Cancel my 4pm appointment",
+    "Show me my events for this week"
+  ]
+}
