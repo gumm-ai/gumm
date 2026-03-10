@@ -4,9 +4,7 @@ import type { OfficialModule } from '~/types/modules';
 const props = defineProps<{ module: OfficialModule | null }>();
 const emit = defineEmits<{ close: []; finish: [id: string] }>();
 
-const step = ref<'check' | 'no-api' | 'credentials' | 'waiting' | 'success'>(
-  'check',
-);
+const step = ref<'check' | 'no-api' | 'credentials' | 'waiting' | 'success'>('check');
 const loading = ref(false);
 const error = ref('');
 const hasGoogleApi = ref(false);
@@ -25,7 +23,6 @@ watch(
       }
       return;
     }
-    // reset state
     step.value = 'check';
     loading.value = true;
     error.value = '';
@@ -35,16 +32,11 @@ watch(
     setupEmail.value = '';
 
     try {
-      const connections =
-        await $fetch<{ id: string; provider: string; status: string }[]>(
-          '/api/connections',
-        );
+      const connections = await $fetch<{ id: string; provider: string; status: string }[]>('/api/connections');
       const google = connections?.find((c) => c.provider === 'google');
       if (google) {
         hasGoogleApi.value = true;
-        const status = await $fetch<{ configured: boolean; email?: string }>(
-          '/api/google/status',
-        );
+        const status = await $fetch<{ configured: boolean; email?: string }>('/api/google/status');
         if (status.configured) {
           setupEmail.value = status.email || '';
           step.value = 'success';
@@ -61,21 +53,15 @@ watch(
     step.value = 'no-api';
     loading.value = false;
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 function startOAuthPoll() {
-  const popup = window.open(
-    '/api/google/auth',
-    'google-oauth',
-    'width=600,height=700,scrollbars=yes',
-  );
+  const popup = window.open('/api/google/auth', 'google-oauth', 'width=600,height=700,scrollbars=yes');
   if (oauthPollInterval) clearInterval(oauthPollInterval);
   oauthPollInterval = setInterval(async () => {
     try {
-      const status = await $fetch<{ configured: boolean; email?: string }>(
-        '/api/google/status',
-      );
+      const status = await $fetch<{ configured: boolean; email?: string }>('/api/google/status');
       if (status.configured) {
         clearInterval(oauthPollInterval!);
         oauthPollInterval = null;
@@ -123,8 +109,7 @@ async function saveCredentialsAndConnect() {
       });
     });
   } catch (err: any) {
-    error.value =
-      err.data?.message || err.message || 'Failed to save credentials';
+    error.value = err.data?.message || err.message || 'Failed to save credentials';
     loading.value = false;
     return;
   }
@@ -160,68 +145,42 @@ async function finishModuleSetup() {
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
-      <div
-        v-if="module"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4"
-      >
-        <div
-          class="absolute inset-0 bg-black/70 backdrop-blur-sm"
-          @click="handleClose"
-        />
+      <div v-if="module" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="handleClose" />
 
-        <div
-          class="relative z-10 w-full max-w-lg rounded-2xl border border-gumm-border bg-gumm-bg p-6 shadow-2xl flex flex-col items-center gap-4 py-8"
-        >
-          <!-- Header -->
+        <div class="relative z-10 w-full max-w-lg rounded-2xl border border-white/[0.08] bg-gumm-bg p-6 shadow-2xl flex flex-col items-center gap-4 py-8">
           <ModulesSetupModalHeader :module="module" @close="handleClose" />
 
-          <!-- Step: Checking -->
-          <div
-            v-if="step === 'check'"
-            class="flex flex-col items-center gap-4 py-6 w-full"
-          >
+          <div v-if="step === 'check'" class="flex flex-col items-center gap-4 py-6 w-full">
             <div class="relative">
-              <div
-                class="h-12 w-12 rounded-full border-2 border-gumm-accent/30"
-              />
-              <div
-                class="absolute inset-0 h-12 w-12 animate-spin rounded-full border-2 border-transparent border-t-gumm-accent"
-              />
+              <div class="h-12 w-12 rounded-full border-2 border-gumm-accent/30" />
+              <div class="absolute inset-0 h-12 w-12 animate-spin rounded-full border-2 border-transparent border-t-gumm-accent" />
             </div>
-            <p class="text-xs text-gumm-muted">
-              Checking for Google API connection…
-            </p>
+            <p class="text-xs text-white/40">Checking for Google API connection…</p>
           </div>
 
-          <!-- Step: No Google API found -->
           <div v-else-if="step === 'no-api'" class="space-y-4 w-full">
-            <div
-              class="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 space-y-2 shadow-sm"
-            >
-              <p
-                class="text-xs font-semibold text-amber-500 flex items-center gap-1.5"
-              >
+            <div class="rounded-xl border border-amber-500/20 bg-amber-500/[0.02] p-4 space-y-2">
+              <p class="text-xs font-medium text-amber-400 flex items-center gap-1.5">
                 <Icon name="lucide:alert-triangle" class="h-3.5 w-3.5" />
                 Google API connection required
               </p>
-              <p class="text-[11px] leading-relaxed text-gumm-muted">
-                This module requires a Google API connection. You can set one up
-                in the <b class="text-gumm-text">APIs</b> page first, then come
-                back here to install.
+              <p class="text-[11px] leading-relaxed text-white/40">
+                This module requires a Google API connection. Set one up in the <b class="text-white/70">APIs</b> page first, then come back.
               </p>
             </div>
 
             <div class="flex items-center gap-2 pt-2">
               <NuxtLink
                 to="/apis"
-                class="flex items-center justify-center gap-1.5 rounded-xl bg-gumm-accent px-4 py-2 text-xs font-medium text-gumm-bg transition-colors hover:bg-gumm-accent-hover shadow-sm flex-1"
+                class="flex items-center justify-center gap-1.5 rounded-lg bg-white text-black px-4 py-2 text-xs font-medium transition-all hover:bg-white/90 flex-1"
                 @click="handleClose"
               >
                 <Icon name="lucide:plug-2" class="h-4 w-4" />
-                Go to APIs Page
+                Go to APIs
               </NuxtLink>
               <button
-                class="flex-1 flex items-center justify-center gap-1.5 text-xs text-gumm-muted hover:text-gumm-text transition-colors border border-gumm-border bg-gumm-surface hover:bg-gumm-bg rounded-xl px-4 py-2"
+                class="flex-1 flex items-center justify-center gap-1.5 text-xs text-white/50 hover:text-white/80 transition-colors border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] rounded-lg px-4 py-2"
                 @click="step = 'credentials'"
               >
                 Enter manually
@@ -229,7 +188,6 @@ async function finishModuleSetup() {
             </div>
           </div>
 
-          <!-- Step: Credentials -->
           <ModulesSetupModalStepCredentials
             v-else-if="step === 'credentials'"
             v-model:setup-client-id="setupClientId"
@@ -240,13 +198,8 @@ async function finishModuleSetup() {
             @save="saveCredentialsAndConnect"
           />
 
-          <!-- Step: Waiting for authorization -->
-          <ModulesSetupModalStepWaiting
-            v-else-if="step === 'waiting'"
-            @close="handleClose"
-          />
+          <ModulesSetupModalStepWaiting v-else-if="step === 'waiting'" @close="handleClose" />
 
-          <!-- Step: Success -->
           <ModulesSetupModalStepSuccess
             v-else-if="step === 'success'"
             :email="setupEmail"

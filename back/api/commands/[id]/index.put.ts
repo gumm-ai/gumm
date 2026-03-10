@@ -7,6 +7,7 @@
  */
 import { eq } from 'drizzle-orm';
 import { commands, commandModules } from '../../../db/schema';
+import { syncCommandsWithTelegram } from '../../../utils/telegram';
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event);
@@ -100,6 +101,8 @@ export default defineEventHandler(async (event) => {
     }
     throw err;
   }
+
+  syncCommandsWithTelegram().catch(() => {});
 
   return { ok: true };
 });

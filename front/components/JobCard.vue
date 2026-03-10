@@ -9,6 +9,7 @@ interface BackgroundJob {
   conversationId: string;
   parentConversationId: string | null;
   moduleIds: string[] | null;
+  persistent: boolean;
   iterations: number;
   startedAt: number | null;
   completedAt: number | null;
@@ -115,9 +116,18 @@ function formatDuration(): string {
 
       <!-- Title + meta -->
       <div class="min-w-0 flex-1">
-        <p class="truncate text-sm font-medium leading-tight">
-          {{ job.title }}
-        </p>
+        <div class="flex items-center gap-1.5">
+          <p class="truncate text-sm font-medium leading-tight">
+            {{ job.title }}
+          </p>
+          <span
+            v-if="job.persistent"
+            class="shrink-0 inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[10px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20"
+          >
+            <Icon name="lucide:infinity" class="h-2.5 w-2.5" />
+            Persistent
+          </span>
+        </div>
         <div class="mt-0.5 flex items-center gap-2 text-xs text-gumm-muted">
           <span>{{ formatDate(job.createdAt) }}</span>
           <span v-if="job.iterations > 0" class="flex items-center gap-0.5">

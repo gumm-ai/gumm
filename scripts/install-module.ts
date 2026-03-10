@@ -33,6 +33,7 @@ import {
   events,
   apiConnections,
 } from '../back/db/schema';
+import { encryptConfig } from '../back/utils/connection-crypto';
 
 // -- Re-declare schemas locally to avoid Nitro auto-import issues --
 const ConfigFieldSchema = z.object({
@@ -318,7 +319,7 @@ async function main() {
             name: req.name,
             provider: req.provider || 'custom',
             authType: req.authType || 'api_key',
-            config: JSON.stringify(initialConfig),
+            config: encryptConfig(initialConfig),
             status: 'disconnected',
             createdAt: now,
             updatedAt: now,

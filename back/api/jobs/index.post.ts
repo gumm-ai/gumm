@@ -15,6 +15,8 @@ export default defineEventHandler(async (event) => {
     title: string;
     prompt: string;
     moduleIds?: string[];
+    deviceIds?: string[];
+    persistent?: boolean;
   }>(event);
   if (!body?.title?.trim() || !body?.prompt?.trim()) {
     throw createError({
@@ -27,6 +29,8 @@ export default defineEventHandler(async (event) => {
     title: body.title.trim(),
     prompt: body.prompt.trim(),
     moduleIds: Array.isArray(body.moduleIds) ? body.moduleIds : undefined,
+    deviceIds: Array.isArray(body.deviceIds) ? body.deviceIds : undefined,
+    persistent: body.persistent === true,
   });
 
   return { id };

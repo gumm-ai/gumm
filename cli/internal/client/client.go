@@ -280,6 +280,17 @@ func (c *Client) GetAPIKey() (apiKey, model string, err error) {
 	return apiKey, model, nil
 }
 
+// LLMProxyURL returns the full URL for the server-side LLM proxy endpoint.
+func (c *Client) LLMProxyURL() string {
+	return c.baseURL + "/api/agent/llm-proxy"
+}
+
+// AuthHeaders returns a copy of the client's authentication headers,
+// suitable for passing to the Agent's proxy config.
+func (c *Client) AuthHeaders() http.Header {
+	return c.headers()
+}
+
 // GetBrainTools fetches all tool definitions from the Brain (builtin + modules).
 func (c *Client) GetBrainTools() ([]map[string]any, error) {
 	data, err := c.Get("/api/brain/tools", nil)
@@ -365,8 +376,13 @@ func (c *Client) GetBrainSystemPrompt(query string) (string, error) {
 
 // StreamAgentTasks opens an SSE connection to receive agent tasks from the server.
 // Each data line is sent to the channel. The caller should parse JSON from each message.
-func (c *Client) StreamAgentTasks(ch chan<- string) error {
-	return c.StreamSSE("/api/agent/tasks/stream", ch)
+// deviceID is the stable ID of this machine — the server uses it to filter targeted tasks.
+func (c *Client) StreamAgentTasks(ch chan<- string, deviceID string) error {
+	path := "/api/agent/tasks/stream"
+	if deviceID != "" {
+		path += "?deviceId=" + deviceID
+	}
+	return c.StreamSSE(path, ch)
 }
 
 // ClaimAgentTask claims a pending agent task for execution.
@@ -427,8 +443,13 @@ type PendingTask struct {
 }
 
 // GetPendingTasks fetches all pending agent tasks via REST (polling fallback).
-func (c *Client) GetPendingTasks() ([]PendingTask, error) {
-	data, err := c.Get("/api/agent/tasks", map[string]string{"status": "pending"})
+// deviceID is used to filter tasks: returns tasks targeting this device + untagged tasks.
+func (c *Client) GetPendingTasks(deviceID string) ([]PendingTask, error) {
+	params := map[string]string{"status": "pending"}
+	if deviceID != "" {
+		params["deviceId"] = deviceID
+	}
+	data, err := c.Get("/api/agent/tasks", params)
 	if err != nil {
 		return nil, err
 	}

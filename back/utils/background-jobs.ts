@@ -21,6 +21,7 @@ import {
   type ChannelContext,
 } from './builtin-tools';
 import { getLLMConfig, callLLM } from './llm-provider';
+import { createAgentTask } from './agent-tasks';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -29,6 +30,10 @@ export interface CreateBackgroundJobOpts {
   prompt: string;
   parentConversationId?: string;
   moduleIds?: string[];
+  /** Device IDs to dispatch the job to (gumm up agents). null = run on server. */
+  deviceIds?: string[];
+  /** Keep the job running until explicitly cancelled. */
+  persistent?: boolean;
 }
 
 export type BackgroundJobStatus =
@@ -49,6 +54,8 @@ export interface BackgroundJob {
   parentConversationId: string | null;
   model: string | null;
   moduleIds: string[] | null;
+  deviceIds: string[] | null;
+  persistent: boolean;
   iterations: number;
   startedAt: Date | null;
   completedAt: Date | null;
@@ -92,6 +99,8 @@ export async function createBackgroundJob(
       conversationId,
       parentConversationId: opts.parentConversationId ?? null,
       moduleIds: opts.moduleIds?.length ? JSON.stringify(opts.moduleIds) : null,
+      deviceIds: opts.deviceIds?.length ? JSON.stringify(opts.deviceIds) : null,
+      persistent: opts.persistent ?? false,
       iterations: 0,
       createdAt: now,
       updatedAt: now,
@@ -116,13 +125,54 @@ export function runBackgroundJob(jobId: string): void {
 
 /**
  * Create and immediately start a background job.
+ * If deviceIds are specified, dispatches agent tasks to those devices
+ * instead of running the LLM loop on the server.
  */
 export async function spawnBackgroundJob(
   opts: CreateBackgroundJobOpts,
 ): Promise<string> {
   const id = await createBackgroundJob(opts);
-  runBackgroundJob(id);
+
+  if (opts.deviceIds?.length) {
+    await dispatchJobToDevices(id, opts);
+  } else {
+    runBackgroundJob(id);
+  }
+
   return id;
+}
+
+/**
+ * Dispatch a background job to specific CLI devices (gumm up).
+ * Creates one agent task per device and marks the job as running.
+ */
+async function dispatchJobToDevices(
+  jobId: string,
+  opts: CreateBackgroundJobOpts,
+): Promise<void> {
+  const now = new Date();
+
+  // Mark job as running immediately
+  await useDrizzle()
+    .update(backgroundJobs)
+    .set({ status: 'running', startedAt: now, updatedAt: now })
+    .where(eq(backgroundJobs.id, jobId));
+
+  await emitJobEvent(jobId, 'job.running', { title: opts.title });
+
+  // Create one agent task per device
+  for (const deviceId of opts.deviceIds!) {
+    await createAgentTask({
+      prompt: opts.prompt,
+      channel: 'web',
+      deviceId,
+      backgroundJobId: jobId,
+    });
+  }
+
+  console.log(
+    `[BackgroundJob] Dispatched "${opts.title}" (${jobId}) to devices: ${opts.deviceIds!.join(', ')}`,
+  );
 }
 
 /**
@@ -171,6 +221,8 @@ function parseJobRow(row: any): BackgroundJob {
   return {
     ...row,
     moduleIds: row.moduleIds ? JSON.parse(row.moduleIds) : null,
+    deviceIds: row.deviceIds ? JSON.parse(row.deviceIds) : null,
+    persistent: !!row.persistent,
   };
 }
 
@@ -230,6 +282,10 @@ async function executeJob(jobId: string): Promise<void> {
   let finalContent = '';
   let error: string | null = null;
   let iterations = 0;
+  const isPersistent = !!row.persistent;
+
+  // Persistent re-dispatch interval for server-side jobs (60s between cycles)
+  const PERSISTENT_INTERVAL_MS = 60_000;
 
   try {
     await brain.ready();
@@ -267,88 +323,150 @@ async function executeJob(jobId: string): Promise<void> {
     // Full agentic loop — same pattern as chat.post.ts
     const MAX_ITERATIONS = 15;
 
-    for (let i = 0; i < MAX_ITERATIONS; i++) {
-      // Respect cancellation
-      if (cancelFlags.get(jobId)) {
-        error = 'Cancelled by user.';
-        break;
+    // Outer loop: for persistent jobs, re-run the agentic cycle after each completion
+    let persistentCycle = 0;
+    do {
+      // On subsequent persistent cycles, inject a continuation prompt
+      if (persistentCycle > 0) {
+        const continuationPrompt =
+          `[Persistent job — health check / cycle ${persistentCycle + 1}]\n\n` +
+          `Original task:\n${row.prompt}\n\n` +
+          `Last cycle result:\n${finalContent}\n\n` +
+          `⚠️ HEALTH CHECK MODE — Do NOT re-run setup from scratch:\n` +
+          `1. Check if any daemon/watcher/script from the previous run is still running (pgrep, PID file, launchctl/systemctl status).\n` +
+          `2. If it IS running: report its status briefly and do nothing else.\n` +
+          `3. If it has STOPPED or crashed: restart it ONLY using the same start command — do NOT create a new script or service.\n` +
+          `4. For non-daemon tasks: check if there is new work to do and act accordingly.\n` +
+          `5. Write any logs to /tmp/ only — NEVER write log files inside the monitored folder.`;
+        llmMessages.push({ role: 'user', content: continuationPrompt });
+
+        await drizzle.insert(messagesTable).values({
+          id: crypto.randomUUID(),
+          conversationId: row.conversationId,
+          role: 'user',
+          content: continuationPrompt,
+          createdAt: new Date(),
+        });
+
+        // Update result in DB so dashboard shows latest
+        await drizzle
+          .update(backgroundJobs)
+          .set({ result: finalContent, iterations, updatedAt: new Date() })
+          .where(eq(backgroundJobs.id, jobId));
       }
 
-      const response = await callLLM(llmConfig, {
-        messages: llmMessages,
-        tools: tools.length > 0 ? tools : undefined,
-        tool_choice: tools.length > 0 ? 'auto' : undefined,
-      });
+      finalContent = '';
 
-      iterations = i + 1;
-      const choice = response?.choices?.[0];
-      if (!choice) throw new Error('No response from LLM');
+      for (let i = 0; i < MAX_ITERATIONS; i++) {
+        // Respect cancellation
+        if (cancelFlags.get(jobId)) {
+          error = 'Cancelled by user.';
+          break;
+        }
 
-      const assistantMessage = choice.message;
+        const response = await callLLM(llmConfig, {
+          messages: llmMessages,
+          tools: tools.length > 0 ? tools : undefined,
+          tool_choice: tools.length > 0 ? 'auto' : undefined,
+        });
 
-      // No tool calls → final response
-      if (!assistantMessage.tool_calls?.length) {
-        finalContent = assistantMessage.content || '';
+        iterations = i + 1;
+        const choice = response?.choices?.[0];
+        if (!choice) throw new Error('No response from LLM');
 
-        // Persist the final assistant message
+        const assistantMessage = choice.message;
+
+        // No tool calls → final response
+        if (!assistantMessage.tool_calls?.length) {
+          finalContent = assistantMessage.content || '';
+
+          // Persist the final assistant message
+          await drizzle.insert(messagesTable).values({
+            id: crypto.randomUUID(),
+            conversationId: row.conversationId,
+            role: 'assistant',
+            content: finalContent,
+            createdAt: new Date(),
+          });
+          break;
+        }
+
+        // Persist assistant message with tool calls
         await drizzle.insert(messagesTable).values({
           id: crypto.randomUUID(),
           conversationId: row.conversationId,
           role: 'assistant',
-          content: finalContent,
+          content: assistantMessage.content || '',
+          toolCalls: JSON.stringify(assistantMessage.tool_calls),
           createdAt: new Date(),
         });
-        break;
+
+        llmMessages.push(assistantMessage);
+
+        // Execute each tool call
+        for (const toolCall of assistantMessage.tool_calls) {
+          const toolName = toolCall.function.name;
+          const toolArgs = JSON.parse(toolCall.function.arguments || '{}');
+
+          console.log(
+            `[BackgroundJob] Tool "${toolName}" in job "${row.title}"`,
+          );
+
+          const builtinResult = await executeBuiltinTool(
+            toolName,
+            toolArgs,
+            channelCtx,
+          );
+          const result =
+            builtinResult ?? (await registry.executeTool(toolName, toolArgs));
+
+          llmMessages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: result,
+          });
+
+          // Persist tool result
+          await drizzle.insert(messagesTable).values({
+            id: crypto.randomUUID(),
+            conversationId: row.conversationId,
+            role: 'tool',
+            content: result,
+            toolCallId: toolCall.id,
+            createdAt: new Date(),
+          });
+        }
       }
 
-      // Persist assistant message with tool calls
-      await drizzle.insert(messagesTable).values({
-        id: crypto.randomUUID(),
-        conversationId: row.conversationId,
-        role: 'assistant',
-        content: assistantMessage.content || '',
-        toolCalls: JSON.stringify(assistantMessage.tool_calls),
-        createdAt: new Date(),
-      });
+      if (!finalContent && !error) {
+        finalContent = 'Max tool iterations reached without a final response.';
+      }
 
-      llmMessages.push(assistantMessage);
+      persistentCycle++;
 
-      // Execute each tool call
-      for (const toolCall of assistantMessage.tool_calls) {
-        const toolName = toolCall.function.name;
-        const toolArgs = JSON.parse(toolCall.function.arguments || '{}');
-
-        console.log(`[BackgroundJob] Tool "${toolName}" in job "${row.title}"`);
-
-        const builtinResult = await executeBuiltinTool(
-          toolName,
-          toolArgs,
-          channelCtx,
+      // For persistent jobs: wait then re-enter the loop (unless cancelled/errored)
+      if (isPersistent && !error && !cancelFlags.get(jobId)) {
+        console.log(
+          `[BackgroundJob] Persistent job "${row.title}" cycle ${persistentCycle} done — waiting ${PERSISTENT_INTERVAL_MS / 1000}s before next cycle`,
         );
-        const result =
-          builtinResult ?? (await registry.executeTool(toolName, toolArgs));
-
-        llmMessages.push({
-          role: 'tool',
-          tool_call_id: toolCall.id,
-          content: result,
-        });
-
-        // Persist tool result
-        await drizzle.insert(messagesTable).values({
-          id: crypto.randomUUID(),
-          conversationId: row.conversationId,
-          role: 'tool',
-          content: result,
-          toolCallId: toolCall.id,
-          createdAt: new Date(),
+        await new Promise<void>((resolve) => {
+          const timer = setTimeout(resolve, PERSISTENT_INTERVAL_MS);
+          // Allow early exit on cancellation
+          const checkCancel = setInterval(() => {
+            if (cancelFlags.get(jobId)) {
+              clearTimeout(timer);
+              clearInterval(checkCancel);
+              resolve();
+            }
+          }, 1000);
+          // Clean up interval when timer fires normally
+          setTimeout(
+            () => clearInterval(checkCancel),
+            PERSISTENT_INTERVAL_MS + 100,
+          );
         });
       }
-    }
-
-    if (!finalContent && !error) {
-      finalContent = 'Max tool iterations reached without a final response.';
-    }
+    } while (isPersistent && !error && !cancelFlags.get(jobId));
   } catch (err: any) {
     error = err.message || 'Unknown error';
     console.error(`[BackgroundJob] Failed: "${row.title}":`, error);

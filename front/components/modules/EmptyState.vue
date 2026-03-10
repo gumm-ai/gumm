@@ -8,29 +8,17 @@ defineProps<{
 </script>
 
 <template>
-  <div class="flex flex-col items-center justify-center py-12 text-center">
+  <div class="flex flex-col items-center justify-center py-16 text-center">
     <div
       v-if="icon"
-      class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gumm-surface text-gumm-muted mb-4"
-      :class="
-        iconStyle === 'dashed'
-          ? 'border border-dashed border-gumm-border'
-          : 'border border-gumm-border'
-      "
+      class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white/[0.03] border mb-4"
+      :class="iconStyle === 'dashed' ? 'border-dashed border-white/[0.1]' : 'border-white/[0.06]'"
     >
-      <Icon :name="icon" class="h-6 w-6" />
+      <Icon :name="icon" class="h-6 w-6 text-white/50" />
     </div>
-    <p class="text-sm font-medium text-gumm-text mb-1">
-      {{ title }}
-    </p>
-    <p
-      class="text-xs text-gumm-muted"
-      :class="{ 'max-w-sm': iconStyle === 'dashed' }"
-    >
-      <!-- We can use v-html for description if it contains HTML (like <code>) or slots. Let's provide a slot for description to be safe -->
-      <slot name="description">
-        {{ description }}
-      </slot>
+    <p class="text-base font-medium text-white/90 mb-1">{{ title }}</p>
+    <p class="text-sm text-white/40 max-w-sm">
+      <slot name="description">{{ description }}</slot>
     </p>
     <slot name="action" />
   </div>

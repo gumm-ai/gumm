@@ -262,7 +262,6 @@ class BrainScheduler {
   // ── Cron job management ───────────────────────────────────────────────
 
   private async startCronJob(entry: ScheduleEntry) {
-    // Stop existing job for this ID if any
     this.stopCronJob(entry.id);
 
     try {
@@ -275,14 +274,24 @@ class BrainScheduler {
 
       this.jobs.set(entry.id, job);
 
-      // Persist next run time
       const nextRun = job.nextRun();
+      const serverNow = new Date();
+      console.log(
+        `[BrainScheduler] Started ${entry.moduleId}/${entry.name} [${entry.cron}] timezone=${timezone}`,
+      );
+      console.log(
+        `[BrainScheduler] Server time: ${serverNow.toISOString()} (${serverNow.getTimezoneOffset()}min offset)`,
+      );
+      console.log(
+        `[BrainScheduler] Next run: ${nextRun?.toISOString()} (raw) -> ${nextRun?.toLocaleString('en-CA', { timeZone: timezone })} (${timezone})`,
+      );
+
       if (nextRun) {
         useDrizzle()
           .update(schedules)
           .set({ nextRunAt: nextRun })
           .where(eq(schedules.id, entry.id))
-          .catch(() => {}); // best-effort
+          .catch(() => {});
       }
     } catch (err: any) {
       console.error(

@@ -109,14 +109,19 @@ export class ContextWindow {
 
   /**
    * Simple local summarisation (no LLM call — fast).
-   * Extracts key user questions and assistant answers.
+   * Focuses on the most recent older messages to keep context relevant
+   * and avoid injecting stale topics that confuse the LLM.
    */
   private summariseLocally(
     messages: Array<{ role: string; content: string }>,
   ): string {
     const points: string[] = [];
 
-    for (const msg of messages) {
+    // Only summarise the tail of old messages (closest to the kept recent ones)
+    // to avoid injecting very old, irrelevant topics
+    const relevantOld = messages.slice(-20);
+
+    for (const msg of relevantOld) {
       if (msg.role === 'user') {
         // Keep first 100 chars of each user message
         points.push(`User asked: "${msg.content.slice(0, 100)}..."`);

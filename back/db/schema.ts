@@ -238,6 +238,8 @@ export const agentTasks = sqliteTable('agent_tasks', {
     .default('telegram'),
   chatId: integer('chat_id'), // Telegram chat ID for reply
   conversationId: text('conversation_id'), // Conversation ID
+  deviceId: text('device_id'), // Target device ID (null = any connected agent)
+  backgroundJobId: text('background_job_id'), // Linked background job (null = standalone task)
   claimedAt: integer('claimed_at', { mode: 'timestamp_ms' }),
   completedAt: integer('completed_at', { mode: 'timestamp_ms' }),
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
@@ -295,6 +297,10 @@ export const backgroundJobs = sqliteTable('background_jobs', {
   parentConversationId: text('parent_conversation_id'), // Originating chat (if spawned inline)
   model: text('model'), // LLM model used
   moduleIds: text('module_ids'), // JSON array of specific module IDs to use (null = all)
+  deviceIds: text('device_ids'), // JSON array of device IDs to dispatch to (null = run on server)
+  persistent: integer('persistent', { mode: 'boolean' })
+    .notNull()
+    .default(false), // Keep running until cancelled
   iterations: integer('iterations').notNull().default(0), // Number of LLM iterations
   startedAt: integer('started_at', { mode: 'timestamp_ms' }),
   completedAt: integer('completed_at', { mode: 'timestamp_ms' }),

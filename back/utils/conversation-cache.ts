@@ -134,6 +134,7 @@ export async function getConversation(
  */
 export async function getConversationMessages(
   conversationId: string,
+  limit?: number,
 ): Promise<CachedMessage[]> {
   const redis = await useRedis();
   const key = `${MSG_PREFIX}${conversationId}`;
@@ -143,19 +144,31 @@ export async function getConversationMessages(
     try {
       const cached = await redis.get(key);
       if (cached) {
-        return JSON.parse(cached);
+        const all: CachedMessage[] = JSON.parse(cached);
+        if (limit && all.length > limit) {
+          return all.slice(-limit);
+        }
+        return all;
       }
     } catch (err: any) {
       console.warn('[ConvCache] Failed to read messages:', err.message);
     }
   }
 
-  // Fetch from database
-  const rows = await useDrizzle()
+  // Fetch from database — if limit is set, fetch the N most recent messages
+  const query = useDrizzle()
     .select()
     .from(messages)
-    .where(eq(messages.conversationId, conversationId))
-    .orderBy(messages.createdAt);
+    .where(eq(messages.conversationId, conversationId));
+
+  let rows;
+  if (limit) {
+    // Fetch the most recent N messages (sub-query: order desc, limit, then re-order asc)
+    const recent = await query.orderBy(desc(messages.createdAt)).limit(limit);
+    rows = recent.reverse();
+  } else {
+    rows = await query.orderBy(messages.createdAt);
+  }
 
   const result: CachedMessage[] = rows.map((r) => ({
     id: r.id,

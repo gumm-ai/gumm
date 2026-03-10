@@ -5,6 +5,7 @@
  * Module-defined connections (id starts with "module-") include metadata fields.
  */
 import { apiConnections } from '../../db/schema';
+import { decryptConfig } from '../../utils/connection-crypto';
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event);
@@ -18,7 +19,7 @@ export default defineEventHandler(async (event) => {
     // Parse config but mask secret values (except metadata fields starting with _)
     let config: Record<string, any> = {};
     try {
-      config = JSON.parse(row.config);
+      config = decryptConfig(row.config);
     } catch {}
 
     const masked: Record<string, any> = {};

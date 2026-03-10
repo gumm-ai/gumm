@@ -7,6 +7,7 @@
  */
 import { eq } from 'drizzle-orm';
 import { apiConnections } from '../../db/schema';
+import { decryptConfig, encryptConfig } from '../../utils/connection-crypto';
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);
@@ -37,10 +38,7 @@ export default defineEventHandler(async (event) => {
     return sendRedirect(event, '/apis?error=ytmusic_not_configured');
   }
 
-  let config: Record<string, string> = {};
-  try {
-    config = JSON.parse(conn.config);
-  } catch {}
+  const config = decryptConfig(conn.config);
 
   if (!config.clientId || !config.clientSecret || !redirectUri) {
     return sendRedirect(event, '/apis?error=missing_credentials');
@@ -105,7 +103,7 @@ export default defineEventHandler(async (event) => {
       .where(eq(apiConnections.id, targetId));
 
     const updatedConfig = {
-      ...(existingYt ? JSON.parse(existingYt.config) : config),
+      ...(existingYt ? decryptConfig(existingYt.config) : config),
       refreshToken: tokenData.refresh_token,
       channelName,
     };
@@ -116,7 +114,7 @@ export default defineEventHandler(async (event) => {
       await useDrizzle()
         .update(apiConnections)
         .set({
-          config: JSON.stringify(updatedConfig),
+          config: encryptConfig(updatedConfig),
           status: 'connected',
           error: null,
           lastTestedAt: now,

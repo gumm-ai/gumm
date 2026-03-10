@@ -8,6 +8,7 @@
  */
 import { eq } from 'drizzle-orm';
 import { apiConnections } from '../../db/schema';
+import { decryptConfig, encryptConfig } from '../../utils/connection-crypto';
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);
@@ -31,10 +32,7 @@ export default defineEventHandler(async (event) => {
     return sendRedirect(event, '/apis?error=spotify_not_configured');
   }
 
-  let config: Record<string, string> = {};
-  try {
-    config = JSON.parse(conn.config);
-  } catch {}
+  const config = decryptConfig(conn.config);
 
   const brain = useBrain();
   await brain.ready();
@@ -104,7 +102,7 @@ export default defineEventHandler(async (event) => {
     await useDrizzle()
       .update(apiConnections)
       .set({
-        config: JSON.stringify(updatedConfig),
+        config: encryptConfig(updatedConfig),
         status: 'connected',
         error: null,
         lastTestedAt: now,

@@ -8,6 +8,7 @@
  */
 import { eq } from 'drizzle-orm';
 import { apiConnections } from '../../db/schema';
+import { decryptConfig, encryptConfig } from '../../utils/connection-crypto';
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);
@@ -36,10 +37,7 @@ export default defineEventHandler(async (event) => {
     return sendRedirect(event, '/apis?error=google_not_configured');
   }
 
-  let config: Record<string, string> = {};
-  try {
-    config = JSON.parse(conn.config);
-  } catch {}
+  const config = decryptConfig(conn.config);
 
   const brain = useBrain();
   await brain.ready();
@@ -114,7 +112,7 @@ export default defineEventHandler(async (event) => {
         .where(eq(apiConnections.id, 'ytmusic'));
 
       const updatedConfig = {
-        ...(existingYt ? JSON.parse(existingYt.config) : config),
+        ...(existingYt ? decryptConfig(existingYt.config) : config),
         refreshToken: tokenData.refresh_token,
         channelName,
       };
@@ -124,7 +122,7 @@ export default defineEventHandler(async (event) => {
         await useDrizzle()
           .update(apiConnections)
           .set({
-            config: JSON.stringify(updatedConfig),
+            config: encryptConfig(updatedConfig),
             status: 'connected',
             error: null,
             lastTestedAt: now,
@@ -139,7 +137,7 @@ export default defineEventHandler(async (event) => {
             name: 'YouTube Music',
             provider: 'ytmusic',
             authType: 'oauth2',
-            config: JSON.stringify(updatedConfig),
+            config: encryptConfig(updatedConfig),
             status: 'connected',
             error: null,
             lastTestedAt: now,
@@ -184,7 +182,7 @@ export default defineEventHandler(async (event) => {
     await useDrizzle()
       .update(apiConnections)
       .set({
-        config: JSON.stringify(updatedConfig),
+        config: encryptConfig(updatedConfig),
         status: 'connected',
         error: null,
         lastTestedAt: now,

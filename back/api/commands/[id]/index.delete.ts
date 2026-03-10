@@ -6,6 +6,7 @@
  */
 import { eq } from 'drizzle-orm';
 import { commands } from '../../../db/schema';
+import { syncCommandsWithTelegram } from '../../../utils/telegram';
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event);
@@ -37,6 +38,8 @@ export default defineEventHandler(async (event) => {
   }
 
   await useDrizzle().delete(commands).where(eq(commands.id, id));
+
+  syncCommandsWithTelegram().catch(() => {});
 
   return { ok: true };
 });

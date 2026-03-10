@@ -25,6 +25,7 @@ import {
 } from '../utils/module-storage';
 import { buildPersonalFactsBlock } from '../utils/personal-facts';
 import { buildKnowledgeBlock } from '../utils/brain-knowledge';
+import { decryptConfig } from '../utils/connection-crypto';
 import { searchMemoryByVector } from '../utils/vector-memory';
 import { isRedisAvailable } from '../utils/redis';
 import { ensureMigrations } from '../utils/db';
@@ -341,7 +342,7 @@ class Brain {
         .limit(1);
       if (!conn) return null;
       try {
-        const config = JSON.parse(conn.config);
+        const config = decryptConfig(conn.config);
         return config[field] ?? null;
       } catch {
         return null;

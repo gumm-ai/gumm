@@ -1,33 +1,18 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
 import type { ApiConnection } from '~/types/api';
-import {
-  getProviderForConnection,
-  isModuleConnection,
-} from '~/utils/apiProviders';
+import { getProviderForConnection, isModuleConnection } from '~/utils/apiProviders';
 
-const props = defineProps<{
-  conn: ApiConnection | null;
-}>();
-
-const emit = defineEmits<{
-  close: [];
-  updated: [];
-}>();
+const props = defineProps<{ conn: ApiConnection | null }>();
+const emit = defineEmits<{ close: []; updated: [] }>();
 
 const editFields = ref<Record<string, string>>({});
 const editLoading = ref(false);
 const editError = ref('');
 
-// Get provider info (works for both built-in and module configs)
-const provider = computed(() =>
-  props.conn ? getProviderForConnection(props.conn) : undefined,
-);
-const isModule = computed(() =>
-  props.conn ? isModuleConnection(props.conn) : false,
-);
+const provider = computed(() => (props.conn ? getProviderForConnection(props.conn) : undefined));
+const isModule = computed(() => (props.conn ? isModuleConnection(props.conn) : false));
 
-// Filter config keys to display (skip metadata fields starting with _)
 const displayConfig = computed(() => {
   if (!props.conn) return {};
   const result: Record<string, string> = {};
@@ -56,7 +41,7 @@ watch(
       editFields.value = {};
       editError.value = '';
     }
-  },
+  }
 );
 
 function handleClose() {
@@ -77,10 +62,7 @@ async function submitEdit() {
       editLoading.value = false;
       return;
     }
-    await $fetch(`/api/connections/${props.conn.id}`, {
-      method: 'PUT',
-      body: { config },
-    });
+    await $fetch(`/api/connections/${props.conn.id}`, { method: 'PUT', body: { config } });
     handleClose();
     emit('updated');
   } catch (err: any) {
@@ -101,134 +83,77 @@ async function submitEdit() {
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
-      <div
-        v-if="conn"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4"
-      >
-        <div
-          class="absolute inset-0 bg-black/70 backdrop-blur-sm"
-          @click="handleClose"
-        />
+      <div v-if="conn" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="handleClose" />
 
-        <div
-          class="relative z-10 w-full max-w-lg rounded-2xl border border-gumm-border bg-gumm-bg p-6 shadow-2xl"
-        >
+        <div class="relative z-10 w-full max-w-lg rounded-2xl border border-white/[0.08] bg-gumm-bg p-6 shadow-2xl">
           <div class="mb-5 flex items-center justify-between">
-            <div class="flex items-center gap-2.5">
-              <div
-                v-if="provider"
-                class="flex h-8 w-8 items-center justify-center rounded-lg border"
-                :class="provider.color"
-              >
+            <div class="flex items-center gap-3">
+              <div v-if="provider" class="flex h-9 w-9 items-center justify-center rounded-lg border" :class="provider.color">
                 <Icon :name="provider.icon" class="h-4 w-4" />
               </div>
               <div>
-                <h2 class="text-sm font-semibold">Edit {{ conn.name }}</h2>
-                <span class="text-[10px] text-gumm-muted font-mono">{{
-                  conn.id
-                }}</span>
+                <h2 class="text-sm font-medium text-white/90">Edit {{ conn.name }}</h2>
+                <span class="text-[10px] text-white/30 font-mono">{{ conn.id }}</span>
               </div>
             </div>
             <div class="flex items-center gap-2">
-              <span
-                v-if="isModule"
-                class="rounded-md bg-purple-500/10 px-1.5 py-0.5 text-[10px] text-purple-400 border border-purple-500/20"
-              >
+              <span v-if="isModule" class="rounded-md bg-purple-500/10 px-1.5 py-0.5 text-[10px] text-purple-400">
                 <Icon name="lucide:puzzle" class="inline h-2.5 w-2.5 mr-0.5" />
                 Module Config
               </span>
-              <button
-                class="text-gumm-muted transition-colors hover:text-gumm-text"
-                @click="handleClose"
-              >
+              <button class="text-white/40 transition-colors hover:text-white/80" @click="handleClose">
                 <Icon name="lucide:x" class="h-4 w-4" />
               </button>
             </div>
           </div>
 
-          <!-- Module help section -->
-          <div
-            v-if="isModule && provider?.helpSteps?.length"
-            class="mb-4 rounded-lg border border-purple-500/20 bg-purple-500/5 p-3"
-          >
-            <p class="text-xs font-medium text-purple-300 mb-2">
-              Setup instructions:
-            </p>
-            <ol
-              class="list-decimal list-inside text-xs text-gumm-muted space-y-0.5"
-            >
-              <li v-for="(step, i) in provider.helpSteps" :key="i">
-                {{ step }}
-              </li>
+          <div v-if="isModule && provider?.helpSteps?.length" class="mb-4 rounded-xl border border-purple-500/20 bg-purple-500/[0.02] p-3">
+            <p class="text-xs font-medium text-purple-300 mb-2">Setup instructions:</p>
+            <ol class="list-decimal list-inside text-xs text-white/40 space-y-0.5">
+              <li v-for="(step, i) in provider.helpSteps" :key="i">{{ step }}</li>
             </ol>
-            <a
-              v-if="provider.helpUrl"
-              :href="provider.helpUrl"
-              target="_blank"
-              class="mt-2 inline-flex items-center gap-1 text-xs text-purple-400 hover:underline"
-            >
+            <a v-if="provider.helpUrl" :href="provider.helpUrl" target="_blank" class="mt-2 inline-flex items-center gap-1 text-xs text-purple-400 hover:underline">
               <Icon name="lucide:external-link" class="h-3 w-3" />
               Open documentation
             </a>
           </div>
 
-          <p class="mb-4 text-xs text-gumm-muted">
-            Leave fields blank to keep their current values. Only non-empty
-            fields will be updated.
-          </p>
+          <p class="mb-4 text-xs text-white/40">Leave fields blank to keep current values. Only non-empty fields will be updated.</p>
 
           <div class="space-y-3">
             <div
-              v-for="field in provider?.fields || [
-                {
-                  key: 'apiKey',
-                  label: 'API Key',
-                  placeholder: 'Enter value',
-                  secret: true,
-                },
-              ]"
+              v-for="field in provider?.fields || [{ key: 'apiKey', label: 'API Key', placeholder: 'Enter value', secret: true }]"
               :key="field.key"
             >
-              <label class="mb-1 block text-xs text-gumm-muted">{{
-                field.label
-              }}</label>
+              <label class="mb-1 block text-[10px] text-white/40 uppercase tracking-wider">{{ field.label }}</label>
               <input
                 v-model="editFields[field.key]"
                 :type="field.secret ? 'password' : 'text'"
                 :placeholder="field.placeholder"
-                class="w-full rounded-lg border border-gumm-border bg-gumm-surface px-3 py-1.5 text-xs text-gumm-text placeholder:text-gumm-muted/50 outline-none transition-all focus:ring-1 focus:ring-gumm-accent focus:border-gumm-accent"
+                class="w-full rounded-lg border border-white/[0.06] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none transition-all focus:border-white/20"
               />
-              <p
-                v-if="displayConfig[field.key]"
-                class="mt-0.5 text-[10px] text-gumm-muted"
-              >
+              <p v-if="displayConfig[field.key]" class="mt-0.5 text-[10px] text-white/30">
                 Current: {{ displayConfig[field.key] }}
               </p>
             </div>
           </div>
 
-          <p
-            v-if="editError"
-            class="mt-3 rounded-lg bg-red-500/10 px-2.5 py-1.5 text-xs text-red-400"
-          >
+          <p v-if="editError" class="mt-3 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">
             {{ editError }}
           </p>
 
           <div class="mt-4 flex items-center gap-2">
             <button
-              class="flex items-center gap-1.5 rounded-lg bg-gumm-accent px-3 py-1.5 text-xs font-medium text-gumm-bg transition-colors hover:bg-gumm-accent-hover disabled:opacity-50"
+              class="flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-xs font-medium text-black transition-all hover:bg-white/90 disabled:opacity-50"
               :disabled="editLoading"
               @click="submitEdit"
             >
-              <Icon
-                :name="editLoading ? 'lucide:loader' : 'lucide:save'"
-                class="h-3.5 w-3.5"
-                :class="editLoading ? 'animate-spin' : ''"
-              />
+              <Icon :name="editLoading ? 'lucide:loader' : 'lucide:save'" class="h-3.5 w-3.5" :class="editLoading ? 'animate-spin' : ''" />
               {{ editLoading ? 'Saving…' : 'Save Changes' }}
             </button>
             <button
-              class="rounded-lg border border-gumm-border px-3 py-1.5 text-xs text-gumm-muted transition-colors hover:bg-white/5"
+              class="rounded-lg border border-white/[0.06] px-3 py-2 text-xs text-white/50 transition-colors hover:bg-white/[0.04] hover:text-white/70"
               @click="handleClose"
             >
               Cancel

@@ -6,6 +6,7 @@
  */
 import { eq } from 'drizzle-orm';
 import { apiConnections } from '../../db/schema';
+import { decryptConfig } from '../../utils/connection-crypto';
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event);
@@ -25,10 +26,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  let config: Record<string, string> = {};
-  try {
-    config = JSON.parse(conn.config);
-  } catch {}
+  const config = decryptConfig(conn.config);
 
   if (!config.clientId) {
     throw createError({
@@ -47,6 +45,7 @@ export default defineEventHandler(async (event) => {
 
   const scopes = [
     'user-read-playback-state',
+    'user-modify-playback-state',
     'user-read-currently-playing',
     'user-read-recently-played',
     'user-top-read',

@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -39,7 +40,7 @@ Press Ctrl+C to stop.`,
 		}
 		c := client.New(cfg)
 
-		// Fetch API key + model
+		// Fetch model config (API key stays on the server via LLM proxy)
 		apiKey, model, err := c.GetAPIKey()
 		if err != nil {
 			fatal(fmt.Sprintf("Failed to fetch brain config: %v", err))
@@ -51,10 +52,22 @@ Press Ctrl+C to stop.`,
 			model = "google/gemini-2.5-flash"
 		}
 
+		// LLM proxy: the server handles API key injection
+		proxyURL := c.LLMProxyURL()
+		proxyHeaders := c.AuthHeaders()
+
 		brainConfig, _ := c.GetBrainConfig()
 		brainName := brainConfig["identity.name"]
 		if brainName == "" {
 			brainName = "Gumm"
+		}
+
+		dcfg := &daemonConfig{
+			apiKey:       apiKey,
+			model:        model,
+			brainName:    brainName,
+			proxyURL:     proxyURL,
+			proxyHeaders: proxyHeaders,
 		}
 
 		fmt.Printf("\n  \033[1;35m%s CLI Agent\033[0m — daemon mode\n", brainName)
@@ -63,6 +76,7 @@ Press Ctrl+C to stop.`,
 		fmt.Println("  \033[2mListening for tasks... (Ctrl+C to stop)\033[0m")
 
 		// Register device and start heartbeat
+		deviceID := getOrCreateDeviceID()
 		go deviceHeartbeatLoop(c, "cli", "", "")
 
 		// Set up signal handling
@@ -80,7 +94,7 @@ Press Ctrl+C to stop.`,
 			errCh := make(chan error, 1)
 
 			go func() {
-				errCh <- c.StreamAgentTasks(taskCh)
+				errCh <- c.StreamAgentTasks(taskCh, deviceID)
 			}()
 
 			// Polling fallback: check for pending tasks every 10s
@@ -100,10 +114,11 @@ Press Ctrl+C to stop.`,
 					pollTicker.Stop()
 					if err != nil {
 						fmt.Printf("  \033[33m⚠ SSE connection lost: %s — reconnecting in %ds...\033[0m\n", err, retryDelay)
-						reconnect = true
-						break inner
+					} else {
+						fmt.Printf("  \033[33m⚠ SSE connection closed by server — reconnecting in %ds...\033[0m\n", retryDelay)
 					}
-					return
+					reconnect = true
+					break inner
 
 				case data, ok := <-taskCh:
 					if !ok {
@@ -112,11 +127,11 @@ Press Ctrl+C to stop.`,
 						reconnect = true
 						break inner
 					}
-					handleAgentEvent(c, data, apiKey, model, brainName, activeTasks)
+					go handleAgentEvent(c, data, dcfg, activeTasks)
 
 				case <-pollTicker.C:
 					// Poll for pending tasks as a fallback
-					go pollPendingTasks(c, apiKey, model, brainName, activeTasks)
+					go pollPendingTasks(c, dcfg, activeTasks, deviceID)
 				}
 			}
 
@@ -136,7 +151,16 @@ Press Ctrl+C to stop.`,
 	},
 }
 
-func handleAgentEvent(c *client.Client, data string, apiKey, model, brainName string, activeTasks *sync.Map) {
+// daemonConfig holds the configuration for daemon-mode agent execution.
+type daemonConfig struct {
+	apiKey       string
+	model        string
+	brainName    string
+	proxyURL     string
+	proxyHeaders http.Header
+}
+
+func handleAgentEvent(c *client.Client, data string, dcfg *daemonConfig, activeTasks *sync.Map) {
 	var event struct {
 		Type string `json:"type"`
 		Task struct {
@@ -158,21 +182,21 @@ func handleAgentEvent(c *client.Client, data string, apiKey, model, brainName st
 		return
 	}
 
-	executeTask(c, event.Task.ID, event.Task.Prompt, apiKey, model, brainName, activeTasks)
+	executeTask(c, event.Task.ID, event.Task.Prompt, dcfg, activeTasks)
 }
 
 // pollPendingTasks fetches pending tasks via REST and processes any that aren't already active.
-func pollPendingTasks(c *client.Client, apiKey, model, brainName string, activeTasks *sync.Map) {
-	tasks, err := c.GetPendingTasks()
+func pollPendingTasks(c *client.Client, dcfg *daemonConfig, activeTasks *sync.Map, deviceID string) {
+	tasks, err := c.GetPendingTasks(deviceID)
 	if err != nil {
 		return // silent fail — SSE is the primary mechanism
 	}
 	for _, task := range tasks {
-		executeTask(c, task.ID, task.Prompt, apiKey, model, brainName, activeTasks)
+		executeTask(c, task.ID, task.Prompt, dcfg, activeTasks)
 	}
 }
 
-func executeTask(c *client.Client, taskID, prompt, apiKey, model, brainName string, activeTasks *sync.Map) {
+func executeTask(c *client.Client, taskID, prompt string, dcfg *daemonConfig, activeTasks *sync.Map) {
 	// Skip if already being processed
 	if _, loaded := activeTasks.LoadOrStore(taskID, true); loaded {
 		return
@@ -190,7 +214,12 @@ func executeTask(c *client.Client, taskID, prompt, apiKey, model, brainName stri
 	fmt.Printf("  \033[33m⚡ Executing task %s...\033[0m\n", taskID[:8])
 
 	// Create a fresh agent for this task
-	a := agent.New(apiKey, model, brainName)
+	a := agent.New(dcfg.apiKey, dcfg.model, dcfg.brainName)
+
+	// Use server-side LLM proxy so the API key never leaves the server
+	if dcfg.proxyURL != "" {
+		a.SetProxy(dcfg.proxyURL, dcfg.proxyHeaders)
+	}
 
 	// Set up file upload capability
 	a.SetUploader(c)

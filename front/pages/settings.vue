@@ -10,23 +10,30 @@ definePageMeta({ layout: 'default' });
 </script>
 
 <template>
-  <div class="flex h-full flex-col">
-    <!-- Header -->
-    <header
-      class="flex items-center gap-2.5 border-b border-gumm-border px-4 py-2.5"
-    >
-      <Icon name="lucide:settings" class="h-4 w-4 text-gumm-accent" />
-      <h1 class="text-base font-semibold">Settings</h1>
+  <div class="flex h-full flex-col bg-gumm-bg">
+    <header class="shrink-0 border-b border-white/[0.06] bg-gumm-bg/80 backdrop-blur-sm sticky top-0 z-10">
+      <div class="flex items-center gap-3 px-6 h-14">
+        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.03]">
+          <Icon name="lucide:settings" class="h-4 w-4 text-white/70" />
+        </div>
+        <div>
+          <h1 class="text-sm font-medium text-white tracking-tight">Settings</h1>
+          <p class="text-[11px] text-white/40">Configuration & preferences</p>
+        </div>
+      </div>
     </header>
 
-    <div class="flex-1 overflow-y-auto p-4 md:p-6 content-start bg-gumm-bg">
-      <div class="mx-auto grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-7xl">
-        <SettingsGuardrail class="sm:col-span-2 lg:col-span-2" />
-        <SettingsTimezone />
-        <SettingsNetworkVpn />
-        <SettingsTelegram />
-        <SettingsWebhooks />
-        <SettingsChangePassword />
+    <div class="flex-1 overflow-y-auto">
+      <div class="max-w-5xl mx-auto p-6 space-y-6">
+        <SettingsGuardrail />
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <SettingsTimezone />
+          <SettingsNetworkVpn />
+          <SettingsTelegram />
+          <SettingsWebhooks />
+          <SettingsChangePassword />
+        </div>
       </div>
     </div>
   </div>

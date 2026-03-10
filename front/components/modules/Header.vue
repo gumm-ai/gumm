@@ -9,33 +9,34 @@ defineEmits<{
 </script>
 
 <template>
-  <header
-    class="flex items-center justify-between border-b border-gumm-border px-4 py-2.5 shrink-0"
-  >
-    <div class="flex items-center gap-2.5">
-      <Icon name="lucide:palmtree" class="h-5 w-5 text-emerald-400" />
-      <h1 class="text-base font-semibold">Modules</h1>
-      <span
-        class="rounded-md bg-gumm-surface px-1.5 py-0.5 text-xs text-gumm-muted"
-      >
-        {{ totalInstalled }} total installed
-      </span>
-    </div>
-    <div class="flex items-center gap-2">
-      <NuxtLink
-        to="/modules/install"
-        class="flex items-center gap-1.5 rounded-lg bg-gumm-accent px-3 py-1.5 text-xs font-medium text-gumm-bg transition-colors hover:bg-gumm-accent-hover"
-      >
-        <Icon name="lucide:plus" class="h-3.5 w-3.5" />
-        From GitHub
-      </NuxtLink>
-      <button
-        class="flex items-center gap-1.5 rounded-lg border border-gumm-border px-3 py-1.5 text-xs text-gumm-muted transition-all duration-150 hover:bg-white/5 hover:text-gumm-text hover:border-gumm-border-hover"
-        @click="$emit('reload')"
-      >
-        <Icon name="lucide:refresh-cw" class="h-3.5 w-3.5" />
-        Reload
-      </button>
+  <header class="shrink-0 border-b border-white/[0.06] bg-gumm-bg/80 backdrop-blur-sm sticky top-0 z-10">
+    <div class="flex items-center justify-between px-6 h-14">
+      <div class="flex items-center gap-3">
+        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.03]">
+          <Icon name="lucide:boxes" class="h-4 w-4 text-white/70" />
+        </div>
+        <div>
+          <h1 class="text-sm font-medium text-white tracking-tight">Modules</h1>
+          <p class="text-[11px] text-white/40">Extend Gumm's capabilities</p>
+        </div>
+        <span class="rounded-full bg-white/[0.06] px-2 py-0.5 text-[10px] text-white/50">{{ totalInstalled }} installed</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button
+          class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-white/50 transition-all hover:bg-white/[0.04] hover:text-white/80"
+          @click="$emit('reload')"
+        >
+          <Icon name="lucide:refresh-cw" class="h-3.5 w-3.5" />
+          Reload
+        </button>
+        <NuxtLink
+          to="/modules/install"
+          class="flex items-center gap-1.5 rounded-lg bg-white text-black px-3 py-1.5 text-xs font-medium transition-all hover:bg-white/90"
+        >
+          <Icon name="lucide:plus" class="h-3.5 w-3.5" />
+          From GitHub
+        </NuxtLink>
+      </div>
     </div>
   </header>
 </template>

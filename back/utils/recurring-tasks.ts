@@ -294,7 +294,6 @@ async function startCronJob(
     conversationId?: string;
   },
 ) {
-  // Stop existing job if any
   const existing = activeJobs.get(id);
   if (existing) {
     existing.stop();
@@ -310,6 +309,18 @@ async function startCronJob(
     });
 
     activeJobs.set(id, job);
+
+    const nextRun = job.nextRun();
+    const serverNow = new Date();
+    console.log(
+      `[RecurringTasks] Started "${opts.name}" [${opts.cron}] timezone=${timezone}`,
+    );
+    console.log(
+      `[RecurringTasks] Server time: ${serverNow.toISOString()} (${serverNow.getTimezoneOffset()}min offset)`,
+    );
+    console.log(
+      `[RecurringTasks] Next run: ${nextRun?.toISOString()} (raw) -> ${nextRun?.toLocaleString('en-CA', { timeZone: timezone })} (${timezone})`,
+    );
   } catch (err: any) {
     console.error(
       `[RecurringTasks] Invalid cron "${opts.cron}" for "${opts.name}":`,

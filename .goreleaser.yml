@@ -1,0 +1,64 @@
+version: 2
+project_name: gumm
+
+before:
+  hooks:
+    - go mod tidy
+    - go vet ./...
+
+builds:
+  - id: gumm
+    dir: cli
+    binary: gumm
+    ldflags:
+      - -s -w
+      - -X github.com/gumm-ai/gumm/cli/cmd.version={{.Version}}
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+# Publish raw binaries (no archives) so install.sh can download gumm-<os>-<arch> directly
+archives:
+  - id: raw-binaries
+    format: binary
+    name_template: 'gumm-{{ .Os }}-{{ .Arch }}'
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+release:
+  github:
+    owner: gumm-ai
+    name: gumm
+  # Tag names: v0.3.0, v1.0.0-beta.1, etc.
+  name_template: '{{.Tag}}'
+  draft: false
+  prerelease: auto
+  footer: |
+    ## Install / Upgrade
+
+    **One-liner install (macOS & Linux):**
+    ```sh
+    curl -fsSL https://raw.githubusercontent.com/gumm-ai/gumm/main/scripts/install.sh | bash
+    ```
+
+    **Self-update an existing install:**
+    ```sh
+    gumm self-update
+    ```
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - Merge pull request
+      - Merge branch

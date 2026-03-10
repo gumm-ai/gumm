@@ -8,6 +8,17 @@ import {
   handleCreatePlaylist,
   handleAddToPlaylist,
 } from './playlists';
+import {
+  handlePlay,
+  handlePause,
+  handleNext,
+  handlePrevious,
+  handleVolume,
+  handleShuffle,
+  handleRepeat,
+  handleDevices,
+  handleQueue,
+} from './playback';
 
 export {
   handleNowPlaying,
@@ -19,6 +30,15 @@ export {
   handlePlaylistTracks,
   handleCreatePlaylist,
   handleAddToPlaylist,
+  handlePlay,
+  handlePause,
+  handleNext,
+  handlePrevious,
+  handleVolume,
+  handleShuffle,
+  handleRepeat,
+  handleDevices,
+  handleQueue,
 };
 
 /**
@@ -48,6 +68,24 @@ export async function routeHandler(
       return handleCreatePlaylist(ctx, args);
     case 'spotify_add_to_playlist':
       return handleAddToPlaylist(ctx, args);
+    case 'spotify_play':
+      return handlePlay(ctx, args);
+    case 'spotify_pause':
+      return handlePause(ctx);
+    case 'spotify_next':
+      return handleNext(ctx);
+    case 'spotify_previous':
+      return handlePrevious(ctx);
+    case 'spotify_volume':
+      return handleVolume(ctx, args);
+    case 'spotify_shuffle':
+      return handleShuffle(ctx, args);
+    case 'spotify_repeat':
+      return handleRepeat(ctx, args);
+    case 'spotify_devices':
+      return handleDevices(ctx);
+    case 'spotify_queue':
+      return handleQueue(ctx, args);
     default:
       return JSON.stringify({ error: `Unknown tool: ${toolName}` });
   }

@@ -15,8 +15,7 @@ export default defineNuxtConfig({
   modules: ['nuxt-auth-utils', '@nuxt/icon'],
 
   icon: {
-    mode: 'css',
-    provider: 'iconify',
+    mode: 'svg',
   },
 
   css: ['~/assets/css/main.css'],

@@ -34,6 +34,7 @@ import {
   type PersonalFactCategory,
 } from './personal-facts';
 import { saveSecret, getSecret, listSecrets, deleteSecret } from './secrets';
+import { devices } from '../db/schema';
 import {
   saveKnowledge,
   listKnowledge,
@@ -453,20 +454,39 @@ export function getBuiltinTools(): ToolDefinition[] {
         },
       },
     },
+    // ── List Devices ────────────────────────────────────────────────────
+    {
+      type: 'function',
+      function: {
+        name: 'list_devices',
+        description:
+          'List all registered CLI devices (machines running `gumm up`). Use this to discover available machines before targeting one with execute_on_cli. Returns device ID, name, OS, status (online/offline), and last seen time.',
+        parameters: {
+          type: 'object',
+          properties: {},
+          required: [],
+        },
+      },
+    },
     // ── CLI Agent Task (delegate to user's PC) ──────────────────────────
     {
       type: 'function',
       function: {
         name: 'execute_on_cli',
         description:
-          "Delegate a task to the user's local PC for execution. Use this when the user asks you to do something that requires their physical computer: open apps, run commands, take screenshots, manage local files, browse the web locally, etc. The task will be picked up by the CLI agent running on their machine (`gumm up`). The result will be sent back to the current channel (Telegram or web). IMPORTANT: Use this only when the action genuinely requires the user's local machine. For server-side actions (memory, reminders, modules), use the normal tools. IMPORTANT for file searches: Be thorough in the prompt you delegate. If the user asks for a generic term (e.g. 'pokemon'), also include related terms, character names, and variations (e.g. 'pikachu', 'charizard', etc.). Use case-insensitive search and broad patterns. IMPORTANT for sending files: The CLI agent can upload local files to storage using upload_file, then send them to Telegram via send_telegram_file. Tell the agent to find, upload, AND send the file in a single task.",
+          "Delegate a task to the user's local PC for execution. Use this when the user asks you to do something that requires their physical computer: open apps, run commands, take screenshots, manage local files, browse the web locally, etc. The task will be picked up by the CLI agent running on their machine (`gumm up`). The result will be sent back to the current channel (Telegram or web).\n\nIMPORTANT: Use this only when the action genuinely requires the user's local machine. For server-side actions (memory, reminders, modules), use the normal tools.\n\nIMPORTANT: The prompt you write MUST contain ONLY the current user request. Do NOT include tasks from previous conversation turns that have already been completed. Each execute_on_cli call is a fresh, isolated task — the CLI agent has NO memory of prior tasks.\n\nIMPORTANT for complex tasks: Write a COMPLETE, step-by-step prompt with ALL commands and file contents pre-written. Do NOT leave the CLI agent to figure out the approach — give it the exact shell commands, exact file contents, and exact paths.\n\nIMPORTANT for persistent macOS daemons / file watchers: ALWAYS use launchd (NOT nohup, disown, or &). Write the full plist XML and install it with launchctl. This survives reboots and guaranteed not to die. CRITICAL rules for watchers: (1) Write all logs to /tmp/ — NEVER write log files inside the monitored folder; log files in the watched folder will trigger the watcher again, creating an infinite loop. (2) Filter strictly by file extension in the watcher command (e.g. fswatch --include='\\.jpg$|.png$|.jpeg$|.tiff$' --exclude='.*'). (3) Give the launchd label a specific unique name (e.g. com.gumm.image-watcher) so health checks can identify it with 'launchctl list | grep com.gumm'.\n\nIMPORTANT for file searches: Be thorough in the prompt you delegate. If the user asks for a generic term (e.g. 'pokemon'), also include related terms, character names, and variations. Use case-insensitive search and broad patterns.\n\nIMPORTANT for sending files: The CLI agent can upload local files to storage using upload_file, then send them to Telegram via send_telegram_file. Tell the agent to find, upload, AND send the file in a single task.",
         parameters: {
           type: 'object',
           properties: {
             prompt: {
               type: 'string',
               description:
-                "A detailed instruction describing what needs to be done on the user's computer. Be specific: include app names, file paths, URLs, commands, etc. The CLI agent will interpret this and use its local tools (open_url, open_application, run_shell_command, take_screenshot, read_file, write_file, list_directory, upload_file). For file searches, include multiple search terms and variations. For sending files to Telegram, instruct the agent to: 1) find the file, 2) upload it with upload_file, 3) send it with send_telegram_file using the returned storageKey.",
+                "A detailed, self-contained instruction describing what needs to be done on the user's computer. ONLY include the current task — never add actions from previous conversation turns. Be VERY specific: include app names, file paths, URLs, exact commands, and full file contents when writing files. For complex tasks (setup scripts, automations, config files), write out the COMPLETE content of every file and the exact commands to run — do NOT tell the agent to 'figure it out'. The CLI agent will interpret this and use its local tools (open_url, open_application, run_shell_command, take_screenshot, read_file, write_file, list_directory, upload_file). For file searches, include multiple search terms and variations. For sending files to Telegram, instruct the agent to: 1) find the file, 2) upload it with upload_file, 3) send it with send_telegram_file using the returned storageKey.\n\nIMPORTANT for browser tasks: Before delegating a browser task, call memory_recall(key: 'preferred_browser') to check if the user has a saved browser preference. If set, include it in the prompt: 'Use <browser> for this task (open URLs with open_url browser parameter set to <browser>, and pass browser=<browser> to get_browser_dom, click_browser_element, type_in_browser, and scroll_browser)'. If NOT set, include in the prompt: 'FIRST call detect_browsers and ask the user which browser they prefer, save it with memory_remember(key: preferred_browser), then proceed.'\n\nIMPORTANT for browser interaction: Instruct the CLI agent to use get_browser_dom + click_browser_element + type_in_browser for interacting with web pages. These are JavaScript-based and MUCH more reliable than screenshot + click_at. The agent must pass the browser name to ALL browser tools (get_browser_dom, click_browser_element, type_in_browser, scroll_browser) to avoid targeting the wrong browser.",
+            },
+            device_id: {
+              type: 'string',
+              description:
+                'Optional. The ID of a specific device to target (from list_devices). If omitted, the task is sent to any connected CLI agent. Use list_devices first to find the right device ID when the user specifies a machine.',
             },
           },
           required: ['prompt'],
@@ -831,6 +851,27 @@ export async function executeBuiltinTool(
       });
       return `Background task spawned (id: ${jobId}). Title: "${args.title}". The task is now running independently. The user can monitor it in the Jobs dashboard.`;
     }
+    // ── List Devices ──────────────────────────────────────────────────
+    case 'list_devices': {
+      const rows = await useDrizzle().select().from(devices);
+      const now = Date.now();
+      const OFFLINE_THRESHOLD_MS = 2 * 60 * 1000;
+      if (rows.length === 0)
+        return 'No devices registered. The user needs to run `gumm up` on their machine.';
+      return (
+        rows
+          .filter((d) => d.type === 'cli')
+          .map((d) => {
+            const lastSeen = d.lastSeenAt
+              ? new Date(d.lastSeenAt).getTime()
+              : 0;
+            const status =
+              now - lastSeen > OFFLINE_THRESHOLD_MS ? 'offline' : d.status;
+            return `- id: ${d.id} | name: ${d.name} | os: ${d.os ?? 'unknown'} | status: ${status}`;
+          })
+          .join('\n') || 'No CLI devices registered.'
+      );
+    }
     // ── CLI Agent Task ────────────────────────────────────────────────
     case 'execute_on_cli': {
       const taskId = await createAgentTask({
@@ -838,8 +879,10 @@ export async function executeBuiltinTool(
         channel: channelCtx?.channel || 'web',
         chatId: channelCtx?.chatId,
         conversationId: channelCtx?.conversationId,
+        deviceId: args.device_id ?? undefined,
       });
-      return `Task delegated to CLI agent (id: ${taskId}). The user's PC will execute this and the result will be sent back to this channel. You can tell the user their request is being processed on their computer.`;
+      const deviceLabel = args.device_id ? ` on device ${args.device_id}` : '';
+      return `Task delegated to CLI agent${deviceLabel} (id: ${taskId}). The user's PC will execute this and the result will be sent back to this channel. You can tell the user their request is being processed on their computer.`;
     }
     // ── Recurring Tasks ──────────────────────────────────────────────
     case 'create_recurring_task': {

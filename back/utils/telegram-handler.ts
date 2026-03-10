@@ -27,6 +27,7 @@ import {
 import { redactSecrets } from './secrets';
 import { getLLMConfig, callLLM, getProviderDisplayName } from './llm-provider';
 import { analyzeAndExtractMemories } from './auto-memory';
+import { getConversationMessages } from './conversation-cache';
 
 export async function processTelegramUpdate(
   update: TelegramUpdate,
@@ -180,9 +181,17 @@ export async function processTelegramUpdate(
           createdAt: now,
         });
 
-        // Prepare LLM messages with command context
-        const userMessages = [{ role: 'user', content: expandedPrompt }];
-        const llmMessages: any[] = await brain.prepareMessages(userMessages);
+        // Fetch conversation history and prepare LLM messages with command context
+        const historyRows = await getConversationMessages(
+          telegramConversationId,
+          50,
+        );
+        const conversationHistory = historyRows
+          .slice(0, -1) // exclude the just-persisted message (we use expandedPrompt instead)
+          .map((m) => ({ role: m.role, content: m.content }));
+        conversationHistory.push({ role: 'user', content: expandedPrompt });
+        const llmMessages: any[] =
+          await brain.prepareMessages(conversationHistory);
 
         // Get LLM configuration
         let llmConfig;
@@ -396,8 +405,16 @@ export async function processTelegramUpdate(
       ].join('\n');
     }
 
-    const userMessages = [{ role: 'user', content: sanitizedUserText }];
-    const llmMessages: any[] = await brain.prepareMessages(userMessages);
+    // Fetch full conversation history so the LLM has context from previous messages
+    const historyRows = await getConversationMessages(
+      telegramConversationId,
+      50,
+    );
+    const conversationHistory = historyRows
+      .slice(0, -1) // exclude the just-persisted user message (we use sanitized version)
+      .map((m) => ({ role: m.role, content: m.content }));
+    conversationHistory.push({ role: 'user', content: sanitizedUserText });
+    const llmMessages: any[] = await brain.prepareMessages(conversationHistory);
 
     if (secretSystemNote) {
       const insertIdx = llmMessages[0]?.role === 'system' ? 1 : 0;

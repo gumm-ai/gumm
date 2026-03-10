@@ -210,6 +210,9 @@ func launchTUI(cfg *config.Config, conversationID string) {
 
 	a := agent.New(apiKey, model, brainName)
 
+	// Use server-side LLM proxy so the API key never leaves the server
+	a.SetProxy(c.LLMProxyURL(), c.AuthHeaders())
+
 	// Connect agent to Brain: fetch system prompt + tools from the backend
 	brainTools, err := c.GetBrainTools()
 	if err != nil {
@@ -235,7 +238,7 @@ func launchTUI(cfg *config.Config, conversationID string) {
 						if mm, ok := msg.(map[string]any); ok {
 							history = append(history, agent.Message{
 								Role:    getStr(mm, "role", ""),
-								Content: getStr(mm, "content", ""),
+								Content: agent.TextContent(getStr(mm, "content", "")),
 							})
 						}
 					}

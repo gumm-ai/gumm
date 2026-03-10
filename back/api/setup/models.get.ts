@@ -24,6 +24,7 @@ export default defineEventHandler(async () => {
     ai21: 'AI21',
     amazon: 'Amazon',
     'bytedance-seed': 'ByteDance',
+    'z-ai': 'Z.ai',
   };
 
   // Priority providers to show first (in order)
@@ -31,6 +32,7 @@ export default defineEventHandler(async () => {
     'google',
     'anthropic',
     'openai',
+    'z-ai',
     'mistralai',
     'meta-llama',
     'deepseek',

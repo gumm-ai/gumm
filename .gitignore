@@ -25,3 +25,5 @@ logs
 
 # Python
 __pycache__/
+
+opencode.json

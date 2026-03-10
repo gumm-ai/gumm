@@ -5,6 +5,7 @@
  */
 import { eq } from 'drizzle-orm';
 import { apiConnections } from '../../db/schema';
+import { decryptConfig } from '../../utils/connection-crypto';
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event);
@@ -20,10 +21,7 @@ export default defineEventHandler(async (event) => {
     return { configured: false, oauthComplete: false, enabled: false };
   }
 
-  let config: Record<string, string> = {};
-  try {
-    config = JSON.parse(conn.config);
-  } catch {}
+  const config = decryptConfig(conn.config);
 
   // Client ID saved but no refresh token — credentials entered, OAuth not yet done
   if (config.clientId && !config.refreshToken) {

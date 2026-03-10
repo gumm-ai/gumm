@@ -38,10 +38,49 @@ type ToolCallFunc struct {
 }
 
 type Message struct {
-	Role       string     `json:"role"`
-	Content    string     `json:"content,omitempty"`
-	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`
-	ToolCallID string     `json:"tool_call_id,omitempty"`
+	Role       string          `json:"role"`
+	Content    json.RawMessage `json:"content,omitempty"`
+	ToolCalls  []ToolCall      `json:"tool_calls,omitempty"`
+	ToolCallID string          `json:"tool_call_id,omitempty"`
+}
+
+// TextContent encodes a plain string as a JSON-quoted string for Message.Content.
+// Exported so external packages (e.g. cmd/chat.go) can build history messages.
+func TextContent(s string) json.RawMessage {
+	b, _ := json.Marshal(s)
+	return b
+}
+
+func textContent(s string) json.RawMessage { return TextContent(s) }
+
+// visionContent creates a multi-modal content array with a text part and an inline PNG image.
+func visionContent(text, base64png string) json.RawMessage {
+	parts := []map[string]any{
+		{"type": "text", "text": text},
+		{"type": "image_url", "image_url": map[string]any{
+			"url": "data:image/png;base64," + base64png,
+		}},
+	}
+	b, _ := json.Marshal(parts)
+	return b
+}
+
+// buildToolContent returns the appropriate content for a tool result message.
+// For take_screenshot results that contain base64 image data, it returns a
+// vision-capable content array so the LLM can actually see the screenshot.
+func buildToolContent(toolName, result string) json.RawMessage {
+	if toolName == "take_screenshot" {
+		var res map[string]any
+		if err := json.Unmarshal([]byte(result), &res); err == nil {
+			if b64, ok := res["image_base64"].(string); ok && b64 != "" {
+				return visionContent(
+					"Screenshot captured. Analyze this image to determine what is on screen, identify UI elements, their positions, and decide the next action.",
+					b64,
+				)
+			}
+		}
+	}
+	return textContent(result)
 }
 
 // BrainToolExecutor handles remote execution of Brain tools (builtin + modules).
@@ -57,6 +96,16 @@ type Agent struct {
 	executor      *ToolExecutor
 	brainExecutor BrainToolExecutor
 	localTools    map[string]bool // tracks which tools are local
+	proxyURL      string          // server LLM proxy URL (e.g. https://server/api/agent/llm-proxy)
+	proxyHeaders  http.Header     // auth headers for the proxy
+}
+
+// SetProxy configures the agent to use a server-side LLM proxy
+// instead of calling OpenRouter directly. This avoids sending the
+// raw API key to remote CLI agents.
+func (a *Agent) SetProxy(proxyURL string, headers http.Header) {
+	a.proxyURL = proxyURL
+	a.proxyHeaders = headers
 }
 
 func New(apiKey, model, brainName string) *Agent {
@@ -71,19 +120,61 @@ func New(apiKey, model, brainName string) *Agent {
 			"Available capabilities:\n"+
 			"- Open URLs in the default browser\n"+
 			"- Open applications\n"+
-			"- Run shell commands (user must confirm)\n"+
+			"- Run shell commands\n"+
 			"- Read and write files\n"+
-			"- Take screenshots of the screen\n"+
-			"- List directory contents\n"+
+			"- Take screenshots of the screen (with vision — you SEE the image)\n"+
+			"- Browser DOM extraction + JavaScript-based clicking and typing\n"+
+			"- Click at screen coordinates, type text, press keyboard shortcuts\n"+
+			"- Read browser DOM (interactive elements) and current URL\n"+
+			"- Control media playback (play/pause, next, previous) on any app\n"+
 			"- Upload files to server storage (for Telegram, etc.)\n\n"+
-			"Guidelines:\n"+
+			"## MANDATORY: Browser preference (ALWAYS DO THIS FIRST)\n"+
+			"**BEFORE any browser task**, you MUST determine which browser to use:\n"+
+			"1. Call `memory_recall(key: 'preferred_browser')` — check for a saved preference\n"+
+			"2. If a preference exists → use that browser for ALL browser operations\n"+
+			"3. If NO preference is saved → call `detect_browsers` to list installed browsers, then:\n"+
+			"   a. Tell the user: 'J'ai détecté ces navigateurs: [list]. Je recommande [best] pour "+
+			"l'automatisation. Lequel tu utilises / préfères ?'\n"+
+			"   b. WAIT for their answer — do NOT proceed without it\n"+
+			"   c. Save their choice: `memory_remember(key: 'preferred_browser', value: '<browser>')`\n"+
+			"NEVER assume a default browser. NEVER skip this step.\n\n"+
+			"## Web page automation workflow\n"+
+			"Once you have the preferred browser:\n"+
+			"1. `open_url(url, browser: '<preferred>')` — opens in the correct browser\n"+
+			"2. Wait 2-3 seconds for page to load, then `get_browser_dom(browser: '<preferred>')` → numbered list of interactive elements\n"+
+			"3. Identify the element by its text, label, or role\n"+
+			"4. `click_browser_element(id, browser: '<preferred>')` — NO coordinate guessing\n"+
+			"5. For text input: `type_in_browser(id, text, browser: '<preferred>')`\n"+
+			"6. `scroll_browser(browser: '<preferred>')` if needed\n"+
+			"7. After each major action, run `get_browser_dom` again for the updated state\n"+
+			"ALWAYS pass the `browser` parameter to ALL browser tools: get_browser_dom, click_browser_element, type_in_browser, scroll_browser.\n\n"+
+			"## CRITICAL: Complete the full task\n"+
+			"Do NOT stop until ALL steps of the task are done (e.g. open page → click button → type text → publish). "+
+			"After each action, call get_browser_dom to verify and continue. "+
+			"If get_browser_dom fails, wait 3 seconds and retry — the page may still be loading. "+
+			"If it fails 3 times, use take_screenshot + click_at as fallback, but still COMPLETE the task.\n\n"+
+			"## Browser compatibility\n"+
+			"- OS: %s\n"+
+			"- On macOS: Full automation with Chrome, Brave, Arc, Edge, Safari (via AppleScript)\n"+
+			"- On macOS: Firefox is NOT supported (no AppleScript JS API)\n"+
+			"- On Linux/Windows: Browser DOM tools are NOT available. Use take_screenshot + click_at as fallback.\n"+
+			"If user picks Firefox on macOS, explain the limitation and suggest a compatible alternative.\n"+
+			"If the user gets an error about JavaScript in Apple Events, tell them to enable it:\n"+
+			"  macOS (English): View > Developer > Allow JavaScript from Apple Events\n"+
+			"  macOS (French): Présentation > Outils pour les développeurs > Autoriser JavaScript dans les événements Apple\n"+
+			"  (The menu name adapts to the user's OS language)\n\n"+
+			"## Non-browser app interaction\n"+
+			"For desktop apps (Finder, etc.), use:\n"+
+			"1. Open/focus the app\n"+
+			"2. `take_screenshot` → analyze the image to locate UI elements and coordinates\n"+
+			"3. `click_at` / `type_text` / `press_key` based on what you see\n"+
+			"4. `take_screenshot` again to verify\n"+
+			"NEVER guess coordinates without a screenshot first.\n"+
+			"Screenshots are auto-scaled to logical resolution — coordinates in the image "+
+			"match click_at coordinates directly, regardless of Retina/HiDPI scaling.\n\n"+
+			"## Other guidelines\n"+
 			"- Be concise — you are in a terminal.\n"+
-			"- Use tools proactively when the user asks for "+
-			"actions on their computer.\n"+
-			"- For shell commands, briefly explain what you "+
-			"will run.\n"+
-			"- When reading files or directories, summarize "+
-			"key information.\n"+
+			"- Use tools proactively when the user asks for actions on their computer.\n"+
 			"- Think step by step for complex tasks.\n"+
 			"- Always use the correct home directory from System info above "+
 			"when the user refers to personal folders (Downloads, Desktop, Documents, etc.).\n"+
@@ -92,7 +183,7 @@ func New(apiKey, model, brainName string) *Agent {
 			"also search for 'pikachu', 'charizard', etc.), and use wildcards.\n"+
 			"- When asked to send files to Telegram: find the file, upload it with "+
 			"upload_file, then send it with send_telegram_file using the storageKey.\n",
-		brainName, runtime.GOOS, homeDir,
+		brainName, runtime.GOOS, homeDir, runtime.GOOS,
 	)
 
 	localToolDefs := GetToolDefinitions()
@@ -112,7 +203,7 @@ func New(apiKey, model, brainName string) *Agent {
 		tools:      localToolDefs,
 		localTools: localToolNames,
 		messages: []Message{
-			{Role: "system", Content: systemPrompt},
+			{Role: "system", Content: textContent(systemPrompt)},
 		},
 	}
 }
@@ -130,10 +221,67 @@ func (a *Agent) SetBrainContext(systemPrompt string, brainTools []map[string]any
 	homeDir, _ := os.UserHomeDir()
 	cliAddendum := fmt.Sprintf(
 		"\n\n## Local machine access (CLI)\n"+
-			"You also have direct access to the user's computer terminal. "+
+			"You also have direct access to the user's computer. "+
 			"You can open URLs, open applications, run shell commands, "+
-			"read/write files, take screenshots, list directories, and upload files.\n"+
-			"Be concise — you are in a terminal. Use tools proactively.\n\n"+
+			"read/write files, take screenshots (with vision), list directories, upload files, "+
+			"interact with browser pages via DOM extraction and JavaScript clicking/typing, "+
+			"click at screen coordinates, type text, press keyboard shortcuts, "+
+			"and control media playback on any app.\n\n"+
+			"## MANDATORY: Browser preference (ALWAYS DO THIS FIRST)\n"+
+			"**BEFORE any browser task**, you MUST determine which browser to use:\n"+
+			"1. Call `memory_recall(key: 'preferred_browser')` — check for a saved preference\n"+
+			"2. If a preference exists → use that browser for ALL browser operations\n"+
+			"3. If NO preference is saved → call `detect_browsers` to list installed browsers, then:\n"+
+			"   a. Tell the user: 'J'ai détecté ces navigateurs: [list]. Je recommande [best] pour "+
+			"l'automatisation. Lequel tu utilises / préfères ?'\n"+
+			"   b. WAIT for their answer — do NOT proceed without it\n"+
+			"   c. Save their choice: `memory_remember(key: 'preferred_browser', value: '<browser>')`\n"+
+			"NEVER assume a default browser. NEVER skip this step.\n\n"+
+			"## Web page automation workflow\n"+
+			"Once you have the preferred browser:\n"+
+			"1. `open_url(url, browser: '<preferred>')` — opens in the correct browser\n"+
+			"2. Wait 2-3 seconds for page to load, then `get_browser_dom(browser: '<preferred>')` → numbered list of interactive elements\n"+
+			"3. Identify the element by its text, label, or role\n"+
+			"4. `click_browser_element(id, browser: '<preferred>')` — NO coordinate guessing\n"+
+			"5. For text input: `type_in_browser(id, text, browser: '<preferred>')`\n"+
+			"6. `scroll_browser(browser: '<preferred>')` if needed\n"+
+			"7. After each major action, run `get_browser_dom` again for the updated state\n"+
+			"ALWAYS pass the `browser` parameter to ALL browser tools: get_browser_dom, click_browser_element, type_in_browser, scroll_browser.\n\n"+
+			"## CRITICAL: Complete the full task\n"+
+			"Do NOT stop until ALL steps of the task are done (e.g. open page → click button → type text → publish). "+
+			"After each action, call get_browser_dom to verify and continue. "+
+			"If get_browser_dom fails, wait 3 seconds and retry — the page may still be loading. "+
+			"If it fails 3 times, use take_screenshot + click_at as fallback, but still COMPLETE the task.\n\n"+
+			"## Browser compatibility\n"+
+			"- On macOS: Full automation with Chrome, Brave, Arc, Edge, Safari (via AppleScript)\n"+
+			"- On macOS: Firefox is NOT supported (no AppleScript JS API)\n"+
+			"- On Linux/Windows: Browser DOM tools (get_browser_dom, click_browser_element, type_in_browser) are NOT available. Use take_screenshot + click_at as fallback.\n"+
+			"If user picks Firefox on macOS, explain the limitation and suggest a compatible alternative.\n"+
+			"If the user gets an error about JavaScript in Apple Events, tell them to enable it in their browser:\n"+
+			"  macOS (English): View > Developer > Allow JavaScript from Apple Events\n"+
+			"  macOS (French): Présentation > Outils pour les développeurs > Autoriser JavaScript dans les événements Apple\n"+
+			"  (The exact menu name adapts to the user's OS language)\n\n"+
+			"## Non-browser app interaction (Finder, etc.)\n"+
+			"For desktop apps that are NOT web browsers, use the visual approach:\n"+
+			"1. Open/focus the app first\n"+
+			"2. `take_screenshot` → analyze the image visually to locate buttons, fields, and their exact coordinates\n"+
+			"3. Act: `click_at` / `type_text` / `press_key` based on what you see in the screenshot\n"+
+			"4. `take_screenshot` again to confirm the action had the expected effect\n"+
+			"NEVER guess or hardcode coordinates — always verify visually first.\n"+
+			"Screenshots are automatically scaled to match logical coordinates, so pixel positions "+
+			"in the image correspond directly to click_at coordinates regardless of screen resolution, "+
+			"Retina/HiDPI scaling, ultra-wide, or multi-monitor setups.\n\n"+
+			"## Media & music playback\n"+
+			"ONLY use these instructions when the user EXPLICITLY asks to play music or control music playback.\n"+
+			"Do NOT play music, open Spotify, or perform any music action unless the user specifically requests it.\n"+
+			"When the user asks to play music:\n"+
+			"1. If the user asks for a specific genre, mood, artist, or playlist (e.g. 'ambient bvdub', 'chill playlist', 'something by Radiohead'), use `spotify_search` with the appropriate query and type ('playlist', 'track', or 'artist') to find matching results\n"+
+			"2. If the user asks vaguely ('play something I like', 'play music'), use `spotify_top_items` or `spotify_recently_played` to understand their taste and pick a track\n"+
+			"3. Pick a specific result from step 1 or 2 — don't ask the user, make a smart choice\n"+
+			"4. Use `spotify_play` with the URI (track, playlist, or album URI) — this launches and plays it directly, no need to open the app manually\n"+
+			"5. Tell the user what you chose and why\n"+
+			"NEVER call `spotify_play` without a URI unless the user says 'resume'. NEVER open Spotify manually with open_application — always use the spotify tools instead.\n"+
+			"For universal media control (pause, next, volume), use `press_media_key`.\n\n"+
 			"## File search best practices\n"+
 			"When searching for files, be thorough:\n"+
 			"- Use case-insensitive search (e.g. `find ... -iname`)\n"+
@@ -155,7 +303,7 @@ func (a *Agent) SetBrainContext(systemPrompt string, brainTools []map[string]any
 	)
 
 	if len(a.messages) > 0 && a.messages[0].Role == "system" {
-		a.messages[0].Content = systemPrompt + cliAddendum
+		a.messages[0].Content = textContent(systemPrompt + cliAddendum)
 	}
 
 	// Merge brain tools with local tools (local tools take precedence on name conflict).
@@ -186,7 +334,7 @@ func (a *Agent) ToolCount() int {
 
 func (a *Agent) LoadHistory(history []Message) {
 	for _, m := range history {
-		if (m.Role == "user" || m.Role == "assistant") && m.Content != "" {
+		if (m.Role == "user" || m.Role == "assistant") && len(m.Content) > 0 {
 			a.messages = append(a.messages, Message{
 				Role: m.Role, Content: m.Content,
 			})
@@ -198,10 +346,10 @@ func (a *Agent) Send(userMessage string, events chan<- Event) {
 	defer close(events)
 
 	a.messages = append(a.messages, Message{
-		Role: "user", Content: userMessage,
+		Role: "user", Content: textContent(userMessage),
 	})
 
-	maxRounds := 12
+	maxRounds := 25
 	for round := 0; round < maxRounds; round++ {
 		content, toolCalls, err := a.streamLLM(events)
 		if err != nil {
@@ -211,7 +359,7 @@ func (a *Agent) Send(userMessage string, events chan<- Event) {
 
 		if len(toolCalls) == 0 {
 			a.messages = append(a.messages, Message{
-				Role: "assistant", Content: content,
+				Role: "assistant", Content: textContent(content),
 			})
 			events <- Event{Type: EventDone}
 			return
@@ -219,7 +367,7 @@ func (a *Agent) Send(userMessage string, events chan<- Event) {
 
 		a.messages = append(a.messages, Message{
 			Role:      "assistant",
-			Content:   content,
+			Content:   textContent(content),
 			ToolCalls: toolCalls,
 		})
 
@@ -259,7 +407,7 @@ func (a *Agent) Send(userMessage string, events chan<- Event) {
 			a.messages = append(a.messages, Message{
 				Role:       "tool",
 				ToolCallID: tc.ID,
-				Content:    result,
+				Content:    buildToolContent(tc.Function.Name, result),
 			})
 		}
 	}
@@ -286,18 +434,32 @@ func (a *Agent) streamLLM(
 
 	body, _ := json.Marshal(payload)
 
-	req, err := http.NewRequest(
-		"POST",
-		"https://openrouter.ai/api/v1/chat/completions",
-		bytes.NewReader(body),
-	)
-	if err != nil {
-		return "", nil, err
+	var req *http.Request
+	var err error
+
+	if a.proxyURL != "" {
+		// Use server-side LLM proxy — API key stays on the server
+		req, err = http.NewRequest("POST", a.proxyURL, bytes.NewReader(body))
+		if err != nil {
+			return "", nil, err
+		}
+		req.Header = a.proxyHeaders.Clone()
+		req.Header.Set("Content-Type", "application/json")
+	} else {
+		// Direct call to OpenRouter (localhost / legacy)
+		req, err = http.NewRequest(
+			"POST",
+			"https://openrouter.ai/api/v1/chat/completions",
+			bytes.NewReader(body),
+		)
+		if err != nil {
+			return "", nil, err
+		}
+		req.Header.Set("Authorization", "Bearer "+a.apiKey)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("HTTP-Referer", "https://gumm.dev")
+		req.Header.Set("X-Title", "Gumm CLI")
 	}
-	req.Header.Set("Authorization", "Bearer "+a.apiKey)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("HTTP-Referer", "https://gumm.dev")
-	req.Header.Set("X-Title", "Gumm CLI")
 
 	client := &http.Client{Timeout: 120 * time.Second}
 	resp, err := client.Do(req)
@@ -309,7 +471,7 @@ func (a *Agent) streamLLM(
 	if resp.StatusCode != 200 {
 		b, _ := io.ReadAll(resp.Body)
 		return "", nil, fmt.Errorf(
-			"OpenRouter error (%d): %s",
+			"LLM error (%d): %s",
 			resp.StatusCode, truncStr(string(b), 500),
 		)
 	}

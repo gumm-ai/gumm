@@ -6,6 +6,7 @@
  */
 import { eq } from 'drizzle-orm';
 import { apiConnections } from '../../../db/schema';
+import { decryptConfig } from '../../../utils/connection-crypto';
 
 /** Provider-specific test endpoints */
 const TEST_URLS: Record<
@@ -60,7 +61,7 @@ export default defineEventHandler(async (event) => {
 
   let config: Record<string, string> = {};
   try {
-    config = JSON.parse(row.config);
+    config = decryptConfig(row.config);
   } catch {}
 
   let success = false;

@@ -5,6 +5,7 @@
  */
 import { eq } from 'drizzle-orm';
 import { apiConnections } from '../../db/schema';
+import { decryptConfig, encryptConfig } from '../../utils/connection-crypto';
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event);
@@ -20,10 +21,7 @@ export default defineEventHandler(async (event) => {
     return { ok: true };
   }
 
-  let config: Record<string, string> = {};
-  try {
-    config = JSON.parse(conn.config);
-  } catch {}
+  const config = decryptConfig(conn.config);
 
   const cleaned = {
     clientId: config.clientId || '',
@@ -34,7 +32,7 @@ export default defineEventHandler(async (event) => {
   await useDrizzle()
     .update(apiConnections)
     .set({
-      config: JSON.stringify(cleaned),
+      config: encryptConfig(cleaned),
       status: 'disconnected',
       error: null,
       updatedAt: now,

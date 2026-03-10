@@ -7,7 +7,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "0.2.0"
+// version is set at build time via -ldflags "-X github.com/gumm-ai/gumm/cli/cmd.version=…"
+var version = "dev"
 
 var rootCmd = &cobra.Command{
 	Use:     "gumm",

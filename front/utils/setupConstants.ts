@@ -108,6 +108,17 @@ export const modelChoices = [
     price: '$15.00 / $60.00',
     description: 'Advanced reasoning. Complex problem solving.',
   },
+  // Z.ai models (via OpenRouter)
+  {
+    id: 'z-ai/glm-5',
+    name: 'GLM-5',
+    provider: 'Z.ai',
+    apiProvider: 'openrouter',
+    modalities: ['text', 'image'],
+    context: '128K',
+    price: 'Pay-as-you-go',
+    description: 'Coding-focused model. Excellent for development tasks.',
+  },
   // Mistral models (direct API)
   {
     id: 'mistral-medium-latest',

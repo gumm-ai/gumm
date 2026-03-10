@@ -15,6 +15,7 @@ import {
   commands,
 } from '../db/schema';
 import { useBrainScheduler } from '../core/scheduler';
+import { decryptConfig, encryptConfig } from './connection-crypto';
 
 declare const process: NodeJS.Process;
 
@@ -372,7 +373,7 @@ class ModuleRegistry {
 
         if (existing) {
           // Update metadata but preserve user-entered config values
-          const existingConfig = JSON.parse(existing.config || '{}');
+          const existingConfig = decryptConfig(existing.config || '{}');
           const updatedConfig = {
             ...existingConfig,
             _moduleId: manifest.id,
@@ -390,7 +391,7 @@ class ModuleRegistry {
             .update(apiConnections)
             .set({
               name: req.name,
-              config: JSON.stringify(updatedConfig),
+              config: encryptConfig(updatedConfig),
               updatedAt: now,
             })
             .where(eq(apiConnections.id, connectionId));
@@ -420,7 +421,7 @@ class ModuleRegistry {
               name: req.name,
               provider: req.provider || 'custom',
               authType: req.authType || 'api_key',
-              config: JSON.stringify(initialConfig),
+              config: encryptConfig(initialConfig),
               status: 'disconnected',
               createdAt: now,
               updatedAt: now,

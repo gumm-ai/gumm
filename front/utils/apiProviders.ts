@@ -576,10 +576,11 @@ export function providerTemplate(id: string): ProviderTemplate | undefined {
   return providers.find((p) => p.id === id);
 }
 
-export function statusColor(status: string): string {
+export function statusColor(conn: ApiConnection | string): string {
+  const status = typeof conn === 'string' ? conn : conn.status;
   if (status === 'connected') return 'bg-emerald-500';
   if (status === 'error') return 'bg-red-500';
-  return 'bg-slate-500';
+  return 'bg-white/20';
 }
 
 /**
@@ -641,7 +642,7 @@ export function getProviderForConnection(
 export function statusBorder(status: string): string {
   if (status === 'connected') return 'border-emerald-500/20';
   if (status === 'error') return 'border-red-500/20';
-  return 'border-gumm-border';
+  return 'border-white/[0.06]';
 }
 
 export function formatDate(ts?: number | null): string {

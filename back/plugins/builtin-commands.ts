@@ -7,6 +7,7 @@
  */
 import { eq } from 'drizzle-orm';
 import { commands } from '../db/schema';
+import { syncCommandsWithTelegram } from '../utils/telegram';
 
 interface BuiltinCommand {
   name: string;
@@ -18,9 +19,9 @@ const BUILTIN_COMMANDS: BuiltinCommand[] = [
   // ── Jobs ────────────────────────────────────────────────────────────
   {
     name: 'addjob',
-    shortDescription: 'Launch a background job',
+    shortDescription: 'Launch a background job (server or remote machine)',
     description:
-      'Create and start a new background job. Use the spawn_background_task tool to create a job with the title and detailed prompt from the user input. If the user provides a short sentence, use it as the title and ask for or infer a detailed prompt. If the user provides a long description, extract a short title and use the rest as the prompt. Confirm the job was started and tell the user they can monitor it in the Jobs dashboard.',
+      "Create and start a background job. Determine WHERE to run it:\n\n1. If the task requires local machine capabilities (file system, apps, shell commands, local automations like fswatch/launchd, etc.) OR the user mentions a machine name — use execute_on_cli, not spawn_background_task. For local machine tasks: first call list_devices to discover available machines, match the user's requested machine by name (case-insensitive), then call execute_on_cli with the matching device_id. If only one device exists, use it automatically. Write a COMPLETE self-contained prompt with all commands, scripts, and file contents pre-written — never leave the agent to figure out the approach.\n\n2. If the task is server-side (research, data processing, API calls, analysis) — use spawn_background_task.\n\nFor the title: if the user provides a short sentence, use it as-is. If long, extract a concise title. Confirm the job was dispatched and where it will run.\n\nCRITICAL for persistent macOS file watchers / daemons: In the prompt you write for execute_on_cli, ALWAYS (a) use launchd (NOT nohup or &), (b) write all logs to /tmp/ and NEVER inside the monitored folder (log files in the watched folder cause infinite loops), (c) filter the watcher by file extension so it ignores log/temp files, (d) use a specific launchd label like com.gumm.<task-name> so health checks can find it.",
   },
   {
     name: 'jobs',
@@ -140,6 +141,7 @@ export default defineNitroPlugin(async () => {
   setTimeout(async () => {
     try {
       await ensureBuiltinCommands();
+      await syncCommandsWithTelegram();
     } catch (err: any) {
       console.warn('[BuiltinCommands] Failed to seed commands:', err.message);
     }

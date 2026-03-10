@@ -4,6 +4,8 @@
  * Sends messages and manages webhook configuration.
  * Bot token is stored in brain_config under `telegram.botToken`.
  */
+import { eq } from 'drizzle-orm';
+import { commands } from '../db/schema';
 
 const TELEGRAM_API = 'https://api.telegram.org';
 
@@ -459,5 +461,40 @@ export async function getTelegramAllowedChats(): Promise<number[]> {
     return String(raw).split(',').map(Number).filter(Boolean);
   } catch {
     return [];
+  }
+}
+
+/**
+ * Register slash commands in the Telegram bot menu (setMyCommands).
+ * Syncs all enabled commands from the DB so they appear in the autocomplete UI.
+ */
+export async function syncCommandsWithTelegram(): Promise<void> {
+  const token = await getTelegramToken();
+  if (!token) return;
+
+  try {
+    const db = useDrizzle();
+    const enabledCommands = await db
+      .select({
+        name: commands.name,
+        shortDescription: commands.shortDescription,
+      })
+      .from(commands)
+      .where(eq(commands.enabled, true));
+
+    const telegramCommands = enabledCommands.map((cmd) => ({
+      command: cmd.name.slice(0, 32),
+      description: (cmd.shortDescription || cmd.name).slice(0, 256),
+    }));
+
+    await telegramApi(token, 'setMyCommands', {
+      commands: telegramCommands,
+    });
+
+    console.log(
+      `[Telegram] Synced ${telegramCommands.length} commands to bot menu.`,
+    );
+  } catch (err: any) {
+    console.warn('[Telegram] Failed to sync commands:', err.message);
   }
 }
